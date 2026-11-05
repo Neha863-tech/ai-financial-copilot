@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+build/
+coverage/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local uploads / generated data
+uploads/
+storage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Deployment / local tooling
+.vercel/
+.netlify/
+.idea/
+
+# Private keys and certificates
+*.pem
+*.key
