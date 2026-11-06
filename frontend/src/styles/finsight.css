@@ -1,0 +1,86 @@
+@import 'ag-grid-community/styles/ag-grid.css';
+@import 'ag-grid-community/styles/ag-theme-quartz.css';
+
+:root {
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted: #667085;
+  --line: #e8edf2;
+  --mint: #16a57a;
+  --mint-soft: #e6f7f0;
+  --coral: #e05252;
+  --amber: #f5a623;
+  --blue: #3b82f6;
+}
+
+.dark {
+  --bg: #0b1311;
+  --surface: #121f1c;
+  --ink: #f2f7f5;
+  --muted: #9eb0aa;
+  --line: #21352f;
+  --mint: #16a57a;
+  --mint-soft: #14352b;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Animations */
+@keyframes riseUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-rise {
+  animation: riseUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* AG Grid Fintech Customization */
+.ag-theme-quartz {
+  --ag-font-family: 'DM Sans', sans-serif;
+  --ag-font-size: 13px;
+  --ag-header-background-color: #fbfcfd;
+  --ag-header-foreground-color: #667085;
+  --ag-border-color: #e8edf2;
+  --ag-row-hover-color: #f5fbf8;
+  --ag-selected-row-background-color: #e6f7f0;
+}
+
+.dark .ag-theme-quartz {
+  --ag-background-color: #121f1c;
+  --ag-header-background-color: #0e1916;
+  --ag-header-foreground-color: #9eb0aa;
+  --ag-border-color: #21352f;
+  --ag-row-hover-color: #172c26;
+  --ag-selected-row-background-color: #1a3830;
+  --ag-data-color: #f2f7f5;
+}
+
+/* Print Styles for Monthly Review Report */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #printable-report, #printable-report * {
+    visibility: visible !important;
+  }
+  #printable-report {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: #ffffff !important;
+    color: #101828 !important;
+  }
+}

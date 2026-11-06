@@ -1,0 +1,191 @@
+import React, { useState, useMemo, useRef } from "react";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { Plus, Search, FileUp, Download, Check, X, ShieldCheck } from "lucide-react";
+import { TransactionItem, FinSightAPI } from "../../services/finsightApi";
+import { toast } from "sonner";
+
+interface Props {
+  transactions: TransactionItem[];
+  onRefresh: () => void;
+  onOpenAddModal: () => void;
+}
+
+export const TransactionsView: React.FC<Props> = ({ transactions, onRefresh, onOpenAddModal }) => {
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const gridRef = useRef<AgGridReact>(null);
+
+  const filteredData = useMemo(() => {
+    return transactions.filter((t) => {
+      const matchCat = categoryFilter === "All" || t.category === categoryFilter;
+      const matchSearch =
+        search === "" ||
+        t.merchant.toLowerCase().includes(search.toLowerCase()) ||
+        t.category.toLowerCase().includes(search.toLowerCase()) ||
+        t.paymentMethod.toLowerCase().includes(search.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [transactions, search, categoryFilter]);
+
+  const columnDefs: ColDef<TransactionItem>[] = useMemo(
+    () => [
+      {
+        headerName: "MERCHANT",
+        field: "merchant",
+        flex: 2,
+        cellRenderer: (params: ICellRendererParams) => {
+          return (
+            <div className="flex items-center gap-2 font-medium">
+              <span className="w-6 h-6 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center text-xs font-bold">
+                {params.value?.[0] || "T"}
+              </span>
+              <span>{params.value}</span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "CATEGORY",
+        field: "category",
+        flex: 1.5,
+        cellRenderer: (params: ICellRendererParams) => {
+          return (
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-[#1a2f29] text-slate-700 dark:text-emerald-300">
+              {params.value}
+            </span>
+          );
+        },
+      },
+      {
+        headerName: "DATE",
+        field: "date",
+        flex: 1.2,
+      },
+      {
+        headerName: "PAYMENT METHOD",
+        field: "paymentMethod",
+        flex: 1.5,
+        cellRenderer: (params: ICellRendererParams) => {
+          const isPayPal = params.value === "PayPal";
+          return (
+            <div className="flex items-center gap-1.5 text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isPayPal ? "bg-blue-500" : "bg-emerald-500"
+                }`}
+              />
+              <span className={isPayPal ? "font-semibold text-blue-600 dark:text-blue-400" : ""}>
+                {params.value}
+              </span>
+            </div>
+          );
+        },
+      },
+      {
+        headerName: "AMOUNT",
+        field: "amount",
+        flex: 1.2,
+        cellClass: "text-right font-semibold",
+        cellRenderer: (params: ICellRendererParams) => {
+          const val = params.value as number;
+          const isPositive = val > 0;
+          return (
+            <span className={isPositive ? "text-emerald-600 font-bold" : "text-slate-800 dark:text-slate-200"}>
+              {isPositive ? "+" : "−"}₹{Math.abs(val).toLocaleString("en-IN")}
+            </span>
+          );
+        },
+      },
+    ],
+    []
+  );
+
+  const handleExportCsv = () => {
+    if (gridRef.current) {
+      gridRef.current.api.exportDataAsCsv({
+        fileName: `FinSight-Transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+      });
+      toast.success("Transactions exported as CSV");
+    }
+  };
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">CASH FLOW</p>
+          <h1 className="text-2xl font-bold font-heading text-slate-900 dark:text-white">
+            Transactions
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Every rupee, organized with AG Grid high-performance sorting and filtering.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenAddModal}
+            className="px-4 py-2 rounded-lg bg-[#16a57a] hover:bg-[#138e69] text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all"
+          >
+            <Plus size={16} /> Add transaction
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 bg-white dark:bg-[#121f1c] border border-slate-200 dark:border-[#21352f] rounded-lg px-3 py-1.5 flex-1 max-w-sm">
+          <Search size={15} className="text-slate-400" />
+          <input
+            placeholder="Search merchants, categories, methods..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full text-xs bg-transparent outline-none text-slate-900 dark:text-white"
+          />
+        </div>
+
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] text-xs text-slate-700 dark:text-slate-200 outline-none"
+        >
+          <option>All</option>
+          <option>Shopping</option>
+          <option>Food & dining</option>
+          <option>Utilities</option>
+          <option>Rent & home</option>
+          <option>Transport</option>
+          <option>Income</option>
+        </select>
+
+        <button
+          onClick={() => toast.info("CSV import wizard ready for bank statement upload")}
+          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] hover:bg-slate-50 dark:hover:bg-[#183129] text-xs font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5"
+        >
+          <FileUp size={15} /> Import CSV
+        </button>
+
+        <button
+          onClick={handleExportCsv}
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] hover:bg-slate-50 dark:hover:bg-[#183129] text-slate-700 dark:text-slate-200"
+          title="Export CSV"
+        >
+          <Download size={15} />
+        </button>
+      </div>
+
+      {/* AG Grid Data Table */}
+      <div className="ag-theme-quartz w-full h-[480px] rounded-xl overflow-hidden border border-slate-200 dark:border-[#21352f] shadow-xs">
+        <AgGridReact<TransactionItem>
+          ref={gridRef}
+          rowData={filteredData}
+          columnDefs={columnDefs}
+          pagination={true}
+          paginationPageSize={10}
+          paginationPageSizeSelector={[10, 20, 50]}
+          animateRows={true}
+          rowSelection="single"
+        />
+      </div>
+    </section>
+  );
+};
