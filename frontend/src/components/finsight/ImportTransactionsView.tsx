@@ -8,7 +8,9 @@ import {
   Download,
   ShieldCheck,
   Hash,
+  Sparkles,
 } from "lucide-react";
+import { FinSightAPI } from "../../services/finsightApi";
 import { toast } from "sonner";
 
 export const ImportTransactionsView: React.FC = () => {
@@ -39,25 +41,67 @@ export const ImportTransactionsView: React.FC = () => {
     }
   };
 
-  const handleProcessImport = () => {
+  const handleProcessImport = async () => {
     if (!selectedFile) return;
     setUploading(true);
 
-    setTimeout(() => {
+    try {
+      const isDocument = /\.(pdf|png|jpe?g)$/i.test(selectedFile.name);
+      if (isDocument) {
+        const result = await FinSightAPI.getAIExtractedDocument(selectedFile);
+        setUploading(false);
+        const extracted = result?.extracted_data || {};
+        const dup = result?.duplicate_detection || {};
+
+        setImportResult({
+          filename: selectedFile.name,
+          isDocument: true,
+          totalRows: 1,
+          importedCount: dup.is_duplicate ? 0 : 1,
+          duplicateCount: dup.is_duplicate ? 1 : 0,
+          extractedData: extracted,
+          duplicateDetection: dup,
+          duplicatesFound: dup.is_duplicate
+            ? [
+                {
+                  row: 1,
+                  merchant: extracted.merchant || "Unknown Merchant",
+                  amount: extracted.total_amount || 0,
+                  reason: dup.reason || "Identical amount, date, and merchant already in ledger",
+                },
+              ]
+            : [],
+        });
+
+        if (dup.is_duplicate) {
+          toast.warning(`Receipt processed: Flagged as potential duplicate (${dup.reason || "Matched existing record"}).`);
+        } else {
+          toast.success(`AI Document parsed: ₹${extracted.total_amount || 0} at ${extracted.merchant || "Merchant"}`);
+        }
+        return;
+      }
+
+      // Default CSV batch processing simulation with deduplication engine
+      setTimeout(() => {
+        setUploading(false);
+        setImportResult({
+          filename: selectedFile.name,
+          isDocument: false,
+          totalRows: 48,
+          importedCount: 45,
+          duplicateCount: 3,
+          duplicatesFound: [
+            { row: 12, merchant: "Netflix Premium", amount: 649, reason: "Duplicate transaction hash in current billing cycle" },
+            { row: 24, merchant: "Swiggy Gourmet", amount: 1240, reason: "Identical timestamp, amount and merchant already posted" },
+            { row: 38, merchant: "BESCOM Electricity", amount: 2180, reason: "External reference ID matches confirmed ledger record" },
+          ],
+        });
+        toast.success(`Import complete! 45 transactions added, 3 duplicates protected.`);
+      }, 1200);
+    } catch (err: any) {
       setUploading(false);
-      setImportResult({
-        filename: selectedFile.name,
-        totalRows: 48,
-        importedCount: 45,
-        duplicateCount: 3,
-        duplicatesFound: [
-          { row: 12, merchant: "Netflix Premium", amount: 649, reason: "Duplicate transaction hash in current billing cycle" },
-          { row: 24, merchant: "Swiggy Gourmet", amount: 1240, reason: "Identical timestamp, amount and merchant already posted" },
-          { row: 38, merchant: "BESCOM Electricity", amount: 2180, reason: "External reference ID matches confirmed ledger record" },
-        ],
-      });
-      toast.success(`Import complete! 45 transactions added, 3 duplicates protected.`);
-    }, 1200);
+      toast.error(err.message || "Failed to process document");
+    }
   };
 
   return (
@@ -91,15 +135,15 @@ export const ImportTransactionsView: React.FC = () => {
           <UploadCloud size={28} />
         </div>
         <h3 className="text-sm font-bold font-heading text-slate-900 dark:text-white mb-1">
-          {selectedFile ? selectedFile.name : "Drag and drop your transaction CSV here"}
+          {selectedFile ? selectedFile.name : "Drag and drop your transaction CSV or receipt (PDF/Image) here"}
         </h3>
         <p className="text-xs text-slate-400 max-w-sm mb-4">
-          Supports CSV exports from HDFC, ICICI, SBI, PayPal, Chase, Revolut, or FinSight templates.
+          Supports CSV exports, PDF bank statements, and receipt images (PNG, JPG) with AI OCR and duplicate protection.
         </p>
 
         <label className="px-4 py-2 rounded-lg bg-[#16a57a] hover:bg-[#138e69] text-white text-xs font-semibold cursor-pointer shadow-xs transition-all">
           Browse File
-          <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+          <input type="file" accept=".csv,.pdf,.png,.jpg,.jpeg" onChange={handleFileChange} className="hidden" />
         </label>
       </div>
 
@@ -110,7 +154,9 @@ export const ImportTransactionsView: React.FC = () => {
             <FileText className="text-[#16a57a]" size={20} />
             <div>
               <p className="text-xs font-bold text-slate-900 dark:text-white">{selectedFile.name}</p>
-              <p className="text-[10px] text-slate-400">{(selectedFile.size / 1024).toFixed(1)} KB • CSV Format</p>
+              <p className="text-[10px] text-slate-400">
+                {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.name.split(".").pop()?.toUpperCase() || "FILE"}
+              </p>
             </div>
           </div>
           <button
@@ -120,10 +166,12 @@ export const ImportTransactionsView: React.FC = () => {
           >
             {uploading ? (
               <>
-                <RefreshCw size={14} className="animate-spin" /> Verifying Hashes...
+                <RefreshCw size={14} className="animate-spin" /> Extracting & Verifying...
               </>
             ) : (
-              "Ingest & Deduplicate"
+              <>
+                <Sparkles size={14} /> Process with AI & Deduplicate
+              </>
             )}
           </button>
         </div>
@@ -136,19 +184,62 @@ export const ImportTransactionsView: React.FC = () => {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="text-emerald-500" size={20} />
               <h3 className="text-sm font-bold font-heading text-slate-900 dark:text-white">
-                Batch Import Summary: {importResult.filename}
+                {importResult.isDocument ? "AI Document Extraction:" : "Batch Import Summary:"} {importResult.filename}
               </h3>
             </div>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600">
-              {importResult.importedCount} Added
+            <span
+              className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                importResult.duplicateCount > 0
+                  ? "bg-amber-50 dark:bg-amber-950/40 text-amber-600"
+                  : "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600"
+              }`}
+            >
+              {importResult.isDocument
+                ? importResult.duplicateCount > 0
+                  ? "Duplicate Detected"
+                  : "Verified Clean"
+                : `${importResult.importedCount} Added`}
             </span>
           </div>
+
+          {importResult.isDocument && importResult.extractedData && (
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#182a24] border border-slate-200 dark:border-[#21352f] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  📄 Extracted Fields (Confidence: {((importResult.extractedData.confidence || 0.95) * 100).toFixed(0)}%)
+                </span>
+                <span className="text-xs font-extrabold text-[#16a57a]">
+                  ₹{importResult.extractedData.total_amount?.toLocaleString() || "0"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Merchant / Payee</span>
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    {importResult.extractedData.merchant || "N/A"}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Date</span>
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    {importResult.extractedData.transaction_date || "N/A"}
+                  </strong>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block">Category</span>
+                  <strong className="text-slate-800 dark:text-slate-200">
+                    {importResult.extractedData.category || "General"}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#182a24]">
               <span className="text-[10px] text-slate-400 block">Total Scanned</span>
               <strong className="text-base font-bold text-slate-900 dark:text-white">
-                {importResult.totalRows} rows
+                {importResult.totalRows} {importResult.isDocument ? "document" : "rows"}
               </strong>
             </div>
             <div className="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20">
@@ -166,27 +257,29 @@ export const ImportTransactionsView: React.FC = () => {
           </div>
 
           {/* Duplicate Audit List */}
-          <div className="space-y-2">
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
-              🛡️ Deduplication Audit Log:
-            </span>
-            <div className="space-y-1.5 text-xs">
-              {importResult.duplicatesFound.map((dup: any, idx: number) => (
-                <div
-                  key={idx}
-                  className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#182a24] border border-slate-100 dark:border-[#21352f] flex items-center justify-between"
-                >
-                  <div>
-                    <span className="font-semibold text-slate-900 dark:text-white">
-                      Row {dup.row}: {dup.merchant}
-                    </span>
-                    <span className="text-[11px] text-slate-400 block">{dup.reason}</span>
+          {importResult.duplicatesFound.length > 0 && (
+            <div className="space-y-2">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
+                🛡️ Deduplication Audit Log:
+              </span>
+              <div className="space-y-1.5 text-xs">
+                {importResult.duplicatesFound.map((dup: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-lg bg-slate-50 dark:bg-[#182a24] border border-slate-100 dark:border-[#21352f] flex items-center justify-between"
+                  >
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white">
+                        {importResult.isDocument ? "Flagged:" : `Row ${dup.row}:`} {dup.merchant}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block">{dup.reason}</span>
+                    </div>
+                    <span className="font-bold text-rose-500">₹{dup.amount}</span>
                   </div>
-                  <span className="font-bold text-rose-500">₹{dup.amount}</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>

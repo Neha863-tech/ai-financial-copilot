@@ -907,4 +907,39 @@ export class FinSightAPI {
       return null;
     }
   }
+
+  // --- Python AI Microservice Integrations ---
+
+  static async getAIFinancialSummary(): Promise<any> {
+    try {
+      const res = await this.request<any>("/ai/summary", { method: "POST" });
+      return res.data;
+    } catch {
+      return null;
+    }
+  }
+
+  static async getAIExtractedDocument(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("http://localhost:8001/api/v1/documents/upload", {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error("Failed to extract document");
+    return (await res.json()).data;
+  }
+
+  static async getAIAffordability(productName: string, price: number): Promise<any> {
+    try {
+      const res = await this.request<any>("/ai/affordability", {
+        method: "POST",
+        body: JSON.stringify({ product_name: productName, price }),
+      });
+      return res.data;
+    } catch {
+      return null;
+    }
+  }
 }

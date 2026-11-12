@@ -20,6 +20,7 @@ import calendarRoutes from './calendar.routes.js';
 import goalsRoutes from './goals.routes.js';
 import notificationsRoutes from './notifications.routes.js';
 import shoppingRoutes from './shopping.routes.js';
+import internalRoutes from './internal.routes.js';
 
 const router = Router();
 
@@ -44,5 +45,6 @@ router.use('/calendar', calendarRoutes);
 router.use('/goals', goalsRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/shopping', shoppingRoutes);
+router.use('/internal', internalRoutes);
 
 export default router;
