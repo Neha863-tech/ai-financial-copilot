@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export const ForecastView: React.FC = () => {
   const [reduction, setReduction] = useState(20);
+  const [aiForecast, setAiForecast] = useState<any>(null);
   const [data, setData] = useState<any>({
     monthlySavingsIncrease: 9960,
     annualSavingsIncrease: 119520,
@@ -21,6 +22,9 @@ export const ForecastView: React.FC = () => {
   useEffect(() => {
     FinSightAPI.simulateForecast(reduction).then((res) => {
       if (res) setData(res);
+    });
+    FinSightAPI.getAIForecast().then((res) => {
+      if (res) setAiForecast(res);
     });
   }, [reduction]);
 
@@ -140,6 +144,50 @@ export const ForecastView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* AI Microservice Regression Insights */}
+      {aiForecast && (
+        <div className="p-5 bg-white dark:bg-[#121f1c] rounded-xl border border-slate-200 dark:border-[#21352f] shadow-xs space-y-3">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-[#1e342c]">
+            <div className="flex items-center gap-2">
+              <Sparkles className="text-[#16a57a]" size={18} />
+              <h3 className="text-sm font-bold font-heading text-slate-900 dark:text-white">
+                AI Statistical Run-Rate & Machine Learning Forecast
+              </h3>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 dark:bg-emerald-950/40 text-[#16a57a]">
+              {aiForecast.methodology || "SCIKIT_LEARN_REGRESSION"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#182a24]">
+              <span className="text-[10px] text-slate-400 block">Analyzed Velocity</span>
+              <strong className="text-sm font-bold text-slate-900 dark:text-white">
+                {aiForecast.days_analyzed || 12} days active
+              </strong>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#182a24]">
+              <span className="text-[10px] text-slate-400 block">Projected Month-End Outflow</span>
+              <strong className="text-sm font-bold text-rose-500">
+                ₹{(aiForecast.projected_month_end_expenses || 33048).toLocaleString()}
+              </strong>
+            </div>
+            <div className="p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20">
+              <span className="text-[10px] text-emerald-600 block">Projected Month-End Surplus</span>
+              <strong className="text-sm font-bold text-emerald-600">
+                ₹{(aiForecast.projected_month_end_savings || 56952).toLocaleString()}
+              </strong>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-[#182a24]">
+              <span className="text-[10px] text-slate-400 block">Confidence Range (90%)</span>
+              <strong className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                ₹{(aiForecast.confidence_range?.lower_bound_expenses || 30899).toLocaleString()} – ₹{(aiForecast.confidence_range?.upper_bound_expenses || 35196).toLocaleString()}
+              </strong>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 };
