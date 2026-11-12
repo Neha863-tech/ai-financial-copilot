@@ -322,7 +322,7 @@ Under recent Indian tax updates, the **New Tax Regime** is the default with lowe
     // -------------------------------------------------------------
     // 5. HOUSING: BUY VS. RENT DECISION
     // -------------------------------------------------------------
-    if (q.includes("buy a house") || q.includes("buy home") || q.includes("rent vs buy") || q.includes("home loan") || q.includes("buy or rent") || q.includes("flat purchase")) {
+    if (q.includes("buy a house") || q.includes("buy home") || q.includes("rent vs buy") || q.includes("home loan") || q.includes("buy or rent") || q.includes("flat purchase") || q.includes("buy a flat") || (q.includes("buy") && (q.includes("rent") || q.includes("flat") || q.includes("house") || q.includes("property")))) {
       return {
         conversationId: "conv-" + Date.now(),
         agentName: "FinSight Real Estate & Housing Agent",

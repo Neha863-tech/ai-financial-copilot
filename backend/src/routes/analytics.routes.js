@@ -12,6 +12,7 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/summary', validate(analyticsQuerySchema), analyticsController.getSummary);
+router.get('/overview', validate(analyticsQuerySchema), analyticsController.getSummary);
 router.get('/categories', validate(analyticsQuerySchema), analyticsController.getCategories);
 router.get('/trends', validate(analyticsQuerySchema), analyticsController.getTrends);
 router.get('/comparison', validate(comparisonQuerySchema), analyticsController.getComparison);
