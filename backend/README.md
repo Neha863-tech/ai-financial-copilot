@@ -59,29 +59,16 @@ backend/
 # 1. Install dependencies
 npm install
 
-# 2. Create backend/.env with your local settings.
-# Required: DATABASE_URL, JWT_SECRET (at least 10 characters),
-# AI_PROVIDER (gemini or groq), and AI_API_KEY.
-# Optional: PayPal Sandbox credentials for checkout.
+# 2. Push schema and seed demo database (One-step setup)
+npm run db:setup
 
-# 3. Set DATABASE_URL to your PostgreSQL connection string:
-# postgresql://<USER>:<PASSWORD>@localhost:<PORT>/<DATABASE>?schema=public
-# Use the actual host, port, database, username, and password for your setup.
-
-# 4. Generate Prisma Client and apply migrations
-npm run db:generate
-npm run db:migrate
-
-# 5. Seed initial categories and demo account
-npm run db:seed
-
-# 6. Run tests
+# 3. Run automated tests
 npm test
 
-# 7. Start development server
+# 4. Start development server (auto-links FastAPI AI microservice on 8001)
 npm run dev
 
-# 8. Start production server
+# 5. Start production server
 npm start
 ```
 

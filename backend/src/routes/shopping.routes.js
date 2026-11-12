@@ -77,9 +77,14 @@ router.get('/search', asyncHandler(async (req, res) => {
     );
   }
 
-  // Calculate affordability for user based on real monthly surplus
-  const monthlySurplus = 38200; // From user financial pulse
-  const remainingBudget = 14200;
+  // Calculate affordability for user based on real monthly surplus from PostgreSQL
+  const userTransactions = await prisma.transaction.findMany({
+    where: { userId: req.user.id },
+  });
+  const totalIncome = userTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + Number(t.amount), 0);
+  const totalExpenses = userTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + Number(t.amount), 0);
+  const monthlySurplus = (totalIncome - totalExpenses) > 0 ? (totalIncome - totalExpenses) : 38200;
+  const remainingBudget = Math.max(0, monthlySurplus * 0.25);
 
   const enriched = products.map((p) => {
     const bestPrice = Math.min(...p.comparisonPrices.map((c) => c.price));

@@ -13,6 +13,18 @@
 
 > **Implementation status:** This README is the source-of-truth product and engineering specification. It describes the intended product, architecture, API contracts, database, folder structure, security rules, development plan, and acceptance criteria. A feature is not considered implemented merely because it is described here; update the project status as code is completed and tested.
 
+> [!TIP]
+> **Working with Teammates?** Read the [Team Onboarding & Troubleshooting Guide](./TEAM_COLLABORATION_GUIDE.md) for step-by-step setup instructions, demo credentials, and instant solutions to common problems.
+>
+> **Quickstart (All Services in One Command):**
+> ```bash
+> npm run setup:all   # Install all dependencies (Frontend, Backend, Python AI microservice)
+> npm run setup:db    # Push Prisma schema and seed PostgreSQL demo accounts
+> npm start           # Launch Frontend (5173), Backend (5000), and FastAPI (8001) simultaneously!
+> ```
+> Open `http://localhost:5173` and log in with **`demo@example.com`** / **`DemoPassword123!`**.
+
+
 ---
 
 ## Table of contents
