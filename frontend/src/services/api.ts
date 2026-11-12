@@ -6,7 +6,7 @@ import { INITIAL_MULTI_AGENT_STATE } from '../data/demoAgents';
 import { INITIAL_DEMO_ORDERS } from '../data/demoOrders';
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export const IS_MOCK_FALLBACK_ENABLED =
   import.meta.env.VITE_ENABLE_MOCK_FALLBACK !== 'false';
@@ -652,3 +652,4 @@ export async function getMyProfile(token: string): Promise<any> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json();
 }
+

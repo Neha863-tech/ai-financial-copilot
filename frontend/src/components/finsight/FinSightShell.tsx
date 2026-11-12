@@ -8,20 +8,21 @@ import {
   Bot,
   TrendingUp,
   RefreshCw,
-  Sparkles,
   Landmark,
   Settings,
-  Bell,
   Sun,
   Moon,
   Menu,
   ChevronDown,
-  Search,
   Plus,
   Activity,
-  CreditCard,
+  LogIn,
+  LogOut,
+  User as UserIcon,
 } from "lucide-react";
 import { FinSightAPI, FinancialPulse, TransactionItem } from "../../services/finsightApi";
+import { useAuth } from "../../context/AuthContext";
+import { AuthModal } from "../auth/AuthModal";
 import { OverviewView } from "./OverviewView";
 import { TransactionsView } from "./TransactionsView";
 import { AnalyticsView } from "./AnalyticsView";
@@ -36,6 +37,7 @@ import { PayPalCheckoutModal } from "./PayPalCheckoutModal";
 import { Toaster, toast } from "sonner";
 
 export const FinSightShell: React.FC = () => {
+  const { user, isAuthenticated, openAuthModal, logout } = useAuth();
   const [currentPage, setCurrentPage] = useState("Overview");
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -68,7 +70,7 @@ export const FinSightShell: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (darkMode) {
@@ -90,6 +92,15 @@ export const FinSightShell: React.FC = () => {
     { label: "Connected Accounts", icon: Landmark },
     { label: "Settings", icon: Settings },
   ];
+
+  const userInitials = user?.fullName
+    ? user.fullName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "AS";
 
   return (
     <div className={`min-h-screen flex bg-[#f7f9fc] dark:bg-[#0b1311] text-[#101828] dark:text-[#f2f7f5] transition-colors duration-200`}>
@@ -113,14 +124,23 @@ export const FinSightShell: React.FC = () => {
 
         {/* Workspace Switcher */}
         {!collapsed && (
-          <div className="p-2.5 rounded-lg border border-slate-200 dark:border-[#21352f] flex items-center justify-between mb-5 text-xs">
+          <div
+            onClick={!isAuthenticated ? openAuthModal : undefined}
+            className={`p-2.5 rounded-lg border border-slate-200 dark:border-[#21352f] flex items-center justify-between mb-5 text-xs ${
+              !isAuthenticated ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-[#152a23]" : ""
+            }`}
+          >
             <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-full bg-[#d7eee6] text-[#167657] flex items-center justify-center font-bold text-xs">
-                AS
+              <span className="w-7 h-7 rounded-full bg-[#d7eee6] dark:bg-[#18392f] text-[#167657] dark:text-emerald-300 flex items-center justify-center font-bold text-xs">
+                {userInitials}
               </span>
               <div>
-                <strong className="block font-semibold text-slate-900 dark:text-white">Arjun's Workspace</strong>
-                <span className="text-[10px] text-slate-400">Personal Account</span>
+                <strong className="block font-semibold text-slate-900 dark:text-white truncate max-w-[120px]">
+                  {user?.fullName ? `${user.fullName}` : "Arjun Sharma"}
+                </strong>
+                <span className="text-[10px] text-slate-400 truncate max-w-[120px] block">
+                  {user?.email || "Personal Account"}
+                </span>
               </div>
             </div>
             <ChevronDown size={14} className="text-slate-400" />
@@ -223,9 +243,32 @@ export const FinSightShell: React.FC = () => {
               <Plus size={15} /> Add Entry
             </button>
 
-            <div className="w-8 h-8 rounded-full bg-[#d7eee6] text-[#167657] font-bold text-xs flex items-center justify-center">
-              AS
-            </div>
+            {/* User Session Profile / Sign In */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-full bg-[#d7eee6] dark:bg-[#18392f] text-[#167657] dark:text-emerald-300 font-bold text-xs flex items-center justify-center cursor-pointer"
+                  title={user?.email || "Signed in"}
+                >
+                  {userInitials}
+                </div>
+                <button
+                  onClick={logout}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-[#1a2f29] transition-colors"
+                  title="Sign Out"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={openAuthModal}
+                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] hover:bg-slate-50 dark:hover:bg-[#172c26] text-xs font-semibold flex items-center gap-1.5 transition-colors text-slate-700 dark:text-slate-200"
+              >
+                <LogIn size={14} className="text-[#16a57a]" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -268,7 +311,10 @@ export const FinSightShell: React.FC = () => {
               <div className="p-5 bg-white dark:bg-[#121f1c] rounded-xl border border-slate-200 dark:border-[#21352f] space-y-3 text-xs">
                 <div>
                   <label className="text-slate-400 block mb-1">User Name</label>
-                  <input defaultValue="Arjun Sharma" className="w-full p-2 border rounded-md dark:bg-transparent" />
+                  <input
+                    defaultValue={user?.fullName || "Arjun Sharma"}
+                    className="w-full p-2 border rounded-md dark:bg-transparent"
+                  />
                 </div>
                 <div>
                   <label className="text-slate-400 block mb-1">Preferred Currency</label>
@@ -310,6 +356,8 @@ export const FinSightShell: React.FC = () => {
         onClose={() => setPaypalModalOpen(false)}
         onSuccess={loadData}
       />
+
+      <AuthModal />
 
       <Toaster position="bottom-right" richColors />
     </div>

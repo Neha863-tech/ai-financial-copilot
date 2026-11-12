@@ -78,12 +78,12 @@ app.get('/health', healthCheckHandler);
 app.get('/api/health', healthCheckHandler);
 app.get('/api/v1/health', healthCheckHandler);
 
-// Mount API routes
+// Mount API routes (supports both /api/v1 and /api)
 app.use('/api/v1', routes);
+app.use('/api', routes);
 
 // 404 & Centralized Error Handling
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 export default app;
-

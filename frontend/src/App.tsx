@@ -1,13 +1,16 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import { FinSightShell } from "./components/finsight/FinSightShell";
 
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/*" element={<FinSightShell />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/*" element={<FinSightShell />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 };
