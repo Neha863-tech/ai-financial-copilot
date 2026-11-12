@@ -1,5 +1,6 @@
 import prisma from '../db/prisma.js';
 import { getCurrentMonthRange, getPreviousMonthRange } from '../utils/dateRange.js';
+import { activityLogger } from './activityLogger.service.js';
 
 export const reportsService = {
   /**
@@ -404,6 +405,17 @@ export const reportsService = {
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    activityLogger.logActivity({
+      userId,
+      category: 'FINANCIAL',
+      eventType: 'FINANCIAL_REPORT_EXPORTED',
+      title: 'Financial Report Exported',
+      description: `Exported CSV report with ${report.transactions.length} transactions for period ${report.period}.`,
+      status: 'SUCCESS',
+      entityType: 'FinancialReport',
+    }).catch(() => {});
+
     return csvContent;
   },
 };

@@ -2,6 +2,7 @@ import prisma from '../db/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { Decimal } from '@prisma/client/runtime/library';
 import { BUDGET_WARNING_THRESHOLD } from '../utils/constants.js';
+import { activityLogger } from './activityLogger.service.js';
 
 export const budgetService = {
   async create(userId, data) {
@@ -49,6 +50,17 @@ export const budgetService = {
       },
       include: { category: true },
     });
+
+    activityLogger.logActivity({
+      userId,
+      category: 'FINANCIAL',
+      eventType: 'BUDGET_CREATED',
+      title: `Budget Created: ${budget.currency} ${budget.amount}`,
+      description: `Created budget for ${budget.category?.name || 'Overall Spending'}.`,
+      status: 'SUCCESS',
+      entityType: 'Budget',
+      entityId: budget.id,
+    }).catch(() => {});
 
     return budget;
   },

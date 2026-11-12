@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { analyticsController } from '../controllers/analytics.controller.js';
-import { authenticate } from '../middlewares/auth.middleware.js';
+import { optionalAuthenticate } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import {
   analyticsQuerySchema,
@@ -9,7 +9,7 @@ import {
 
 const router = Router();
 
-router.use(authenticate);
+router.use(optionalAuthenticate);
 
 router.get('/summary', validate(analyticsQuerySchema), analyticsController.getSummary);
 router.get('/overview', validate(analyticsQuerySchema), analyticsController.getSummary);

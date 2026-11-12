@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
+import profileRoutes from './profile.routes.js';
+import sessionRoutes from './session.routes.js';
+import activityRoutes from './activity.routes.js';
 import transactionRoutes from './transaction.routes.js';
 import categoryRoutes from './category.routes.js';
 import budgetRoutes from './budget.routes.js';
@@ -22,6 +25,9 @@ const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/profile', profileRoutes);
+router.use('/sessions', sessionRoutes);
+router.use('/activity', activityRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/budgets', budgetRoutes);

@@ -11,6 +11,7 @@ describe('Transaction API Routes', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.spyOn(prisma.userActivity, 'create').mockResolvedValue({});
     vi.spyOn(prisma.user, 'findUnique').mockResolvedValue({
       id: fakeUserId,
       fullName: 'Test User',

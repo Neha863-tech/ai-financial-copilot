@@ -1,3 +1,22 @@
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum LoginStatus {
+  SUCCESS
+  FAILED
+}
+
+enum ActivityCategory {
+  ACCOUNT
+  FINANCIAL
+  PAYMENTS
+  SECURITY
+  INTEGRATION
+}
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -127,6 +146,26 @@ model User {
   importBatches     ImportBatch[]
   financialReports  FinancialReport[]
   integrations      ConnectedIntegration[]
+
+  avatarUrl              String?
+  phone                  String?
+  username               String?            @unique
+  dateOfBirth            DateTime?          @db.Date
+  country                String?            @default("India")
+  status                 String             @default("ACTIVE")
+  plan                   String             @default("PRO")
+  emailVerified          Boolean            @default(true)
+  phoneVerified          Boolean            @default(false)
+  twoFactorEnabled       Boolean            @default(false)
+  lastLoginAt            DateTime?          @db.Timestamptz(6)
+  lastSeenAt             DateTime?          @db.Timestamptz(6)
+  lastLogoutAt           DateTime?          @db.Timestamptz(6)
+  lastPasswordChangeAt   DateTime?          @db.Timestamptz(6)
+  sessions               UserSession[]
+  loginEvents            LoginEvent[]
+  activities             UserActivity[]
+  notificationPreference NotificationPreference?
+
 }
 
 model Category {
@@ -339,6 +378,7 @@ enum NotificationType {
   PAYPAL_PAYMENT
   ANOMALY_DETECTED
   SYSTEM
+  SECURITY_ALERT
 }
 
 enum ReportPeriod {
@@ -478,8 +518,12 @@ model AuditLog {
   entityId   String
   details    Json?
   ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  userAgent     String?
+  riskLevel     String   @default("LOW")
+  outcome       String   @default("SUCCESS")
+  requestId     String?
+  changeDetails Json?
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, entityType, createdAt])
@@ -531,4 +575,74 @@ model ConnectedIntegration {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
+}
+
+model UserSession {
+  id               String        @id @default(uuid()) @db.Uuid
+  userId           String        @db.Uuid
+  sessionTokenHash String        @unique
+  deviceName       String
+  browser          String
+  operatingSystem  String
+  ipAddress        String?
+  location         String?
+  status           SessionStatus @default(ACTIVE)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(6)
+  lastActiveAt     DateTime      @default(now()) @db.Timestamptz(6)
+  expiresAt        DateTime      @db.Timestamptz(6)
+  revokedAt        DateTime?     @db.Timestamptz(6)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, lastActiveAt])
+}
+
+model LoginEvent {
+  id            String      @id @default(uuid()) @db.Uuid
+  userId        String?     @db.Uuid
+  status        LoginStatus
+  failureReason String?
+  ipAddress     String?
+  userAgent     String?
+  device        String?
+  browser       String?
+  os            String?
+  location      String?
+  createdAt     DateTime    @default(now()) @db.Timestamptz(6)
+  user          User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model UserActivity {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @db.Uuid
+  category     ActivityCategory @default(ACCOUNT)
+  eventType    String
+  title        String
+  description  String
+  status       String           @default("SUCCESS")
+  entityType   String?
+  entityId     String?
+  sourceDevice String?
+  ipAddress    String?
+  metadata     Json?
+  createdAt    DateTime         @default(now()) @db.Timestamptz(6)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, category, createdAt])
+}
+
+model NotificationPreference {
+  id                  String   @id @default(uuid()) @db.Uuid
+  userId              String   @unique @db.Uuid
+  emailNewLogin       Boolean  @default(true)
+  emailFailedLogin    Boolean  @default(true)
+  emailPasswordChange Boolean  @default(true)
+  emailBudgetAlert    Boolean  @default(true)
+  emailBillDue        Boolean  @default(true)
+  emailWeeklyDigest   Boolean  @default(false)
+  pushOverspend       Boolean  @default(true)
+  inAppAlerts         Boolean  @default(true)
+  updatedAt           DateTime @updatedAt @db.Timestamptz(6)
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

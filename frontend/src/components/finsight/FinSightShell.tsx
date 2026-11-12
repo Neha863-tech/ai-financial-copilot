@@ -16,6 +16,7 @@ import {
   UploadCloud,
   Bell,
   Settings,
+  Shield,
   Sun,
   Moon,
   Menu,
@@ -43,6 +44,7 @@ import { ConnectedAccountsView } from "./ConnectedAccountsView";
 import { ShoppingIntelligenceView } from "./ShoppingIntelligenceView";
 import { ImportTransactionsView } from "./ImportTransactionsView";
 import { NotificationsView } from "./NotificationsView";
+import { ProfileView } from "./ProfileView";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { PayPalCheckoutModal } from "./PayPalCheckoutModal";
 import { Toaster, toast } from "sonner";
@@ -84,6 +86,15 @@ export const FinSightShell: React.FC = () => {
   }, [isAuthenticated]);
 
   useEffect(() => {
+    // Throttled heartbeat to maintain accurate lastSeenAt and verify session
+    FinSightAPI.sendHeartbeat();
+    const interval = setInterval(() => {
+      FinSightAPI.sendHeartbeat();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
+  useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
     } else {
@@ -108,7 +119,7 @@ export const FinSightShell: React.FC = () => {
     { label: "Shopping Intelligence", icon: Sparkles, isNew: true },
     { label: "Import Transactions", icon: UploadCloud, isNew: true },
     { label: "Notifications", icon: Bell, isNew: true },
-    { label: "Settings", icon: Settings },
+    { label: "Profile & Security", icon: Shield, isNew: true },
   ];
 
   const userInitials = user?.fullName
@@ -274,12 +285,13 @@ export const FinSightShell: React.FC = () => {
             {/* User Session Profile / Sign In */}
             {isAuthenticated ? (
               <div className="flex items-center gap-2">
-                <div
-                  className="w-8 h-8 rounded-full bg-[#d7eee6] dark:bg-[#18392f] text-[#167657] dark:text-emerald-300 font-bold text-xs flex items-center justify-center cursor-pointer"
-                  title={user?.email || "Signed in"}
+                <button
+                  onClick={() => setCurrentPage("Profile & Security")}
+                  className="w-8 h-8 rounded-full bg-[#d7eee6] dark:bg-[#18392f] text-[#167657] dark:text-emerald-300 font-bold text-xs flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-[#16a57a]/50 transition-all"
+                  title={`${user?.email || "Signed in"} - Click to view Profile & Security`}
                 >
                   {userInitials}
-                </div>
+                </button>
                 <button
                   onClick={logout}
                   className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-[#1a2f29] transition-colors"
@@ -345,42 +357,7 @@ export const FinSightShell: React.FC = () => {
 
           {currentPage === "Notifications" && <NotificationsView />}
 
-          {currentPage === "Settings" && (
-            <section className="space-y-4 max-w-lg">
-              <h1 className="text-xl font-bold font-heading">Settings & Preferences</h1>
-              <div className="p-5 bg-white dark:bg-[#121f1c] rounded-xl border border-slate-200 dark:border-[#21352f] space-y-3 text-xs">
-                <div>
-                  <label className="text-slate-400 block mb-1">User Name</label>
-                  <input
-                    defaultValue={user?.fullName || "Arjun Sharma"}
-                    className="w-full p-2 border rounded-md dark:bg-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Preferred Currency</label>
-                  <select className="w-full p-2 border rounded-md dark:bg-transparent">
-                    <option>INR (₹)</option>
-                    <option>USD ($)</option>
-                    <option>EUR (€)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Monthly Income Baseline</label>
-                  <input defaultValue="88000" className="w-full p-2 border rounded-md dark:bg-transparent font-semibold" />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Monthly Savings Goal</label>
-                  <input defaultValue="35000" className="w-full p-2 border rounded-md dark:bg-transparent font-semibold" />
-                </div>
-                <button
-                  onClick={() => toast.success("Preferences updated")}
-                  className="px-4 py-2 bg-[#16a57a] text-white rounded-lg font-semibold"
-                >
-                  Save settings
-                </button>
-              </div>
-            </section>
-          )}
+          {(currentPage === "Profile & Security" || currentPage === "Settings") && <ProfileView />}
         </div>
       </main>
 

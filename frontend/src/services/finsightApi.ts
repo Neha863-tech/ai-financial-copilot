@@ -27,10 +27,110 @@ export interface FinancialPulse {
   monthlyTrends: { month: string; income: number; expenses: number; savings: number }[];
 }
 
+export interface UserProfileResponse {
+  personalInfo: {
+    id: string;
+    avatarUrl?: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    username?: string;
+    dateOfBirth?: string;
+    country?: string;
+    preferredCurrency: string;
+    timezone: string;
+    createdAt: string;
+    emailVerified: boolean;
+    phoneVerified: boolean;
+  };
+  accountInfo: {
+    userId: string;
+    status: string;
+    plan: string;
+    twoFactorEnabled: boolean;
+    lastProfileUpdate: string;
+    lastPasswordChange?: string;
+    lastLogin?: string;
+    lastSeen?: string;
+    lastLogout?: string;
+    activeSessions: number;
+    totalActivities: number;
+  };
+  notificationPreferences: {
+    emailNewLogin: boolean;
+    emailFailedLogin: boolean;
+    emailPasswordChange: boolean;
+    emailBudgetAlert: boolean;
+    emailBillDue: boolean;
+    emailWeeklyDigest: boolean;
+    pushOverspend: boolean;
+    inAppAlerts: boolean;
+  };
+  recentLogins: Array<{
+    id: string;
+    status: string;
+    device?: string;
+    browser?: string;
+    os?: string;
+    ipAddress?: string;
+    location?: string;
+    failureReason?: string;
+    createdAt: string;
+  }>;
+}
+
+export interface UserSessionItem {
+  id: string;
+  deviceName: string;
+  browser: string;
+  operatingSystem: string;
+  ipAddress?: string;
+  location?: string;
+  status: string;
+  createdAt: string;
+  lastActiveAt: string;
+  expiresAt: string;
+  revokedAt?: string;
+  isCurrent: boolean;
+}
+
+export interface UserActivityItem {
+  id: string;
+  category: "ACCOUNT" | "FINANCIAL" | "PAYMENTS" | "SECURITY" | "INTEGRATION";
+  eventType: string;
+  title: string;
+  description: string;
+  status: string;
+  entityType?: string;
+  entityId?: string;
+  sourceDevice?: string;
+  ipAddress?: string;
+  metadata?: any;
+  createdAt: string;
+}
+
+export interface SecurityAuditItem {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  details?: any;
+  ipAddress?: string;
+  userAgent?: string;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  outcome: "SUCCESS" | "FAILURE" | "DENIED";
+  requestId?: string;
+  changeDetails?: any;
+  createdAt: string;
+}
+
 export class FinSightAPI {
   private static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE}${endpoint}`;
-    const token = localStorage.getItem("finsight_token") || localStorage.getItem("token");
+    const token =
+      localStorage.getItem("finsight_token") ||
+      localStorage.getItem("trustcart_auth_token") ||
+      localStorage.getItem("token");
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -615,5 +715,196 @@ export class FinSightAPI {
         ],
       },
     ];
+  }
+
+  // --- Section 14: Profile, Sessions, Activity & Audit APIs ---
+
+  static async getProfile(): Promise<UserProfileResponse> {
+    const res = await this.request<any>("/profile");
+    return res.data;
+  }
+
+  static async updateProfile(data: {
+    fullName?: string;
+    phone?: string;
+    username?: string;
+    country?: string;
+    preferredCurrency?: string;
+    timezone?: string;
+    avatarUrl?: string;
+  }): Promise<any> {
+    const res = await this.request<any>("/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return res.data;
+  }
+
+  static async updateAvatar(avatarUrl: string): Promise<any> {
+    const res = await this.request<any>("/profile/avatar", {
+      method: "PUT",
+      body: JSON.stringify({ avatarUrl }),
+    });
+    return res.data;
+  }
+
+  static async changePassword(payload: {
+    currentPassword: string;
+    newPassword: string;
+    revokeOthers?: boolean;
+  }): Promise<any> {
+    return await this.request<any>("/profile/password", {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  static async getSessions(): Promise<UserSessionItem[]> {
+    const res = await this.request<any>("/sessions");
+    return res.data?.sessions || [];
+  }
+
+  static async revokeSession(sessionId: string): Promise<any> {
+    return await this.request<any>(`/sessions/${sessionId}`, {
+      method: "DELETE",
+    });
+  }
+
+  static async revokeOtherSessions(): Promise<any> {
+    return await this.request<any>("/sessions/revoke-others", {
+      method: "POST",
+    });
+  }
+
+  static async revokeAllSessions(): Promise<any> {
+    return await this.request<any>("/sessions/revoke-all", {
+      method: "POST",
+    });
+  }
+
+  static async getLoginHistory(limit: number = 20): Promise<any[]> {
+    const res = await this.request<any>(`/sessions/login-history?limit=${limit}`);
+    return res.data?.history || [];
+  }
+
+  static async getActivities(params?: {
+    category?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    activities: UserActivityItem[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+    categoryCounts: Record<string, number>;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.set("category", params.category);
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.startDate) searchParams.set("startDate", params.startDate);
+    if (params?.endDate) searchParams.set("endDate", params.endDate);
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
+    const res = await this.request<any>(`/activity${qs}`);
+    return res.data;
+  }
+
+  static async getAuditLogs(params?: {
+    riskLevel?: string;
+    outcome?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    logs: SecurityAuditItem[];
+    pagination: { total: number; page: number; limit: number; totalPages: number };
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.riskLevel) searchParams.set("riskLevel", params.riskLevel);
+    if (params?.outcome) searchParams.set("outcome", params.outcome);
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : "";
+    const res = await this.request<any>(`/activity/audit-logs${qs}`);
+    return res.data;
+  }
+
+  static async updateNotificationPreferences(data: any): Promise<any> {
+    const res = await this.request<any>("/profile/notification-preferences", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    return res.data?.preferences;
+  }
+
+  static async exportUserData(): Promise<void> {
+    const url = `${API_BASE}/profile/export-data`;
+    const token =
+      localStorage.getItem("finsight_token") ||
+      localStorage.getItem("trustcart_auth_token") ||
+      localStorage.getItem("token");
+
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!res.ok) throw new Error("Failed to export user data");
+
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `finsight-data-export-${new Date().toISOString().substring(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  static async exportActivityCsv(): Promise<void> {
+    const url = `${API_BASE}/activity/export`;
+    const token =
+      localStorage.getItem("finsight_token") ||
+      localStorage.getItem("trustcart_auth_token") ||
+      localStorage.getItem("token");
+
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+
+    if (!res.ok) throw new Error("Failed to export activity CSV");
+
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = `finsight-activity-log-${new Date().toISOString().substring(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  static async deleteAccount(data: { confirmEmail: string; password: string }): Promise<any> {
+    return await this.request<any>("/profile", {
+      method: "DELETE",
+      body: JSON.stringify(data),
+    });
+  }
+
+  static async sendHeartbeat(): Promise<any> {
+    try {
+      return await this.request<any>("/auth/heartbeat", {
+        method: "POST",
+      });
+    } catch {
+      // Background heartbeat shouldn't throw to caller
+      return null;
+    }
   }
 }
