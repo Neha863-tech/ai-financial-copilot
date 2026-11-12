@@ -1,0 +1,33 @@
+import { Router } from 'express';
+import authRoutes from './auth.routes.js';
+import userRoutes from './user.routes.js';
+import transactionRoutes from './transaction.routes.js';
+import categoryRoutes from './category.routes.js';
+import budgetRoutes from './budget.routes.js';
+import analyticsRoutes from './analytics.routes.js';
+import aiRoutes from './ai.routes.js';
+import insightRoutes from './insight.routes.js';
+import recurringRoutes from './recurring.routes.js';
+import reminderRoutes from './reminder.routes.js';
+import paypalRoutes from './paypal.routes.js';
+import simulatorRoutes from './simulator.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
+
+const router = Router();
+
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/transactions', transactionRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/budgets', budgetRoutes);
+router.use('/analytics', analyticsRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/ai', aiRoutes);
+router.use('/insights', insightRoutes);
+router.use('/recurring-payments', recurringRoutes);
+router.use('/reminders', reminderRoutes);
+router.use('/paypal', paypalRoutes);
+router.use('/simulator', simulatorRoutes);
+
+export default router;
+
