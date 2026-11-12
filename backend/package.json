@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:setup": "prisma db push && node prisma/seed.js",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",

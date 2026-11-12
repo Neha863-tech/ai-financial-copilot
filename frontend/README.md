@@ -14,9 +14,9 @@ Instead of simply displaying static expense records, FinSight AI understands spe
 
 ## ⚡ Core Tech Stack
 
-- **Frontend:** React 18, TypeScript, Tailwind CSS, AG Grid Community, Recharts, Lucide React, Framer Motion, `@paypal/react-paypal-js`, Sonner.
-- **Backend:** Node.js, Express.js, TypeScript, Prisma ORM, PostgreSQL (local or hosted), Zod, JWT.
-- **AI & Multi-Agent Mesh:** Groq API (`llama-3.3-70b-versatile`), Central AI Orchestrator with 6 specialized domain agents, deterministic decimal-safe financial math.
+- **Frontend:** React 18, Pure JavaScript (JSX/JS), Tailwind CSS, AG Grid Community, Recharts, Lucide React, Framer Motion, `@paypal/react-paypal-js`, Sonner.
+- **Backend:** Node.js, Express.js, JavaScript, Prisma ORM, PostgreSQL (local or hosted), Zod, JWT.
+- **AI & Multi-Agent Mesh:** Python FastAPI Microservice (Port 8001), Groq API (`llama-3.3-70b-versatile`), Central AI Orchestrator with 8 specialized domain agents, Scikit-learn Linear Regression forecasting, deterministic decimal-safe financial math.
 - **Payment Gateway:** PayPal REST APIs (v2 Orders & Captures), PayPal Developer Sandbox, PayPal Webhooks with idempotent processing.
 
 ---
@@ -61,33 +61,23 @@ Instead of simply displaying static expense records, FinSight AI understands spe
 ## 🚀 Quickstart & Setup Guide
 
 ### 1. Prerequisites
-- **Node.js** v18+ (tested on Node v22)
-- **PostgreSQL** running locally on port 5432 (or a hosted instance e.g. Neon/Supabase)
+- **Node.js** v18+ (tested on Node v20/v22)
+- **Python** 3.11+ (for the dedicated AI microservice)
+- **PostgreSQL** running on port 5432 (local or hosted e.g. Neon/Supabase)
 
-### 2. Backend Setup
+### 2. One-Command Startup (Runs Frontend, Backend & AI Microservice)
 ```bash
-cd backend
-npm install
-# Configure PostgreSQL database URL in backend/.env:
-# DATABASE_URL=postgresql://postgres:postgres@localhost:5432/finsight_ai?schema=public
-
-# Sync schema and generate Prisma client:
-npx prisma db push
-
-# Seed demo financial data for Arjun Sharma:
-npx tsx prisma/seed.ts
-
-# Start Express server (runs on http://localhost:5000):
-npm run dev
+# In the root repository directory:
+npm run setup:all   # Installs dependencies for all 3 layers
+npm run setup:db    # Pushes Prisma schema and seeds demo data
+npm start           # Boots Frontend (5173), Backend (5000), and FastAPI (8001)
 ```
 
-### 3. Frontend Setup
+### 3. Frontend-Only Setup
 ```bash
-# In the root project directory:
+cd frontend
 npm install
-
-# Start Vite dev server (runs on http://localhost:5173):
-npm run dev
+npm run dev         # Launches Vite dev server on http://localhost:5173
 ```
 
 ---

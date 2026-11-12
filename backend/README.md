@@ -101,19 +101,16 @@ MAX_CSV_FILE_SIZE_MB=5
 # 1. Install dependencies
 npm install
 
-# 2. Run Prisma migrations
-npx prisma migrate dev --name init
+# 2. Push schema and seed demo database (One-step setup)
+npm run db:setup
 
-# 3. Seed initial categories and demo account
-npm run db:seed
-
-# 4. Run tests
+# 3. Run automated tests
 npm test
 
-# 5. Start development server
+# 4. Start development server (auto-links FastAPI AI microservice on 8001)
 npm run dev
 
-# 6. Start production server
+# 5. Start production server
 npm start
 ```
 

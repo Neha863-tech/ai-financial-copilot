@@ -7,10 +7,14 @@
   "scripts": {
     "start": "node scripts/start-all.mjs",
     "dev": "node scripts/start-all.mjs",
+    "setup:all": "npm install --prefix backend && npm install --prefix frontend && python -m pip install -r ai-integration/requirements.txt",
+    "setup:db": "npm run db:setup --prefix backend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "dev:ai": "cd ai-integration && python -m uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload",
     "test": "npm test --prefix backend && cd ai-integration && python -m pytest tests/",
+    "test:backend": "npm test --prefix backend",
+    "test:ai": "cd ai-integration && python -m pytest tests/",
     "build": "npm run build --prefix frontend"
   },
   "keywords": [
