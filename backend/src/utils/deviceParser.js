@@ -5,7 +5,7 @@
 
 export function parseUserAgent(userAgentString = '') {
   const ua = userAgentString || '';
-  
+
   // Detect Browser
   let browser = 'Unknown Browser';
   if (/Edg\/([0-9.]+)/.test(ua)) {

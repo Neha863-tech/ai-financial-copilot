@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import { aiController } from '../controllers/ai.controller.js';
-import { optionalAuthenticate } from '../middlewares/auth.middleware.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { aiLimiter } from '../middlewares/rateLimit.middleware.js';
 import { chatSchema, conversationIdSchema } from '../validators/ai.validator.js';
 
 const router = Router();
 
-router.use(optionalAuthenticate);
+router.use(authenticate);
 
 router.post('/chat', aiLimiter, validate(chatSchema), aiController.chat);
 router.post('/summary', aiController.getSummary);

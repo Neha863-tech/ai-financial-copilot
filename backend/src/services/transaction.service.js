@@ -163,7 +163,7 @@ export const transactionService = {
     if (data.direction !== undefined) updateData.direction = data.direction;
     if (data.transactionDate !== undefined) updateData.transactionDate = new Date(data.transactionDate);
     if (data.status !== undefined) updateData.status = data.status;
-    
+
     if (data.categoryId !== undefined) {
       if (data.categoryId) {
         const category = await prisma.category.findFirst({

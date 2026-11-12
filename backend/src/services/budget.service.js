@@ -79,7 +79,7 @@ export const budgetService = {
         const limit = Number(budget.amount);
         const spentAmount = Number(spent);
         const utilization = limit > 0 ? (spentAmount / limit) * 100 : 0;
-        
+
         let status = 'ON_TRACK';
         if (utilization >= 100) status = 'EXCEEDED';
         else if (utilization >= BUDGET_WARNING_THRESHOLD) status = 'WARNING';
@@ -174,7 +174,7 @@ export const budgetService = {
       const limit = Number(budget.amount);
       const spentAmount = Number(spent);
       const utilization = limit > 0 ? (spentAmount / limit) * 100 : 0;
-      
+
       let status = 'ON_TRACK';
       if (utilization >= 100) status = 'EXCEEDED';
       else if (utilization >= BUDGET_WARNING_THRESHOLD) status = 'WARNING';

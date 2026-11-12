@@ -6,9 +6,9 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import { hashSessionToken } from '../utils/sessionToken.js';
 
 export const authenticate = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.[env.COOKIE_NAME] || 
+  const token = req.cookies?.[env.COOKIE_NAME] ||
     req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!token) {
     throw ApiError.unauthorized('Authentication required');
   }
@@ -78,9 +78,9 @@ export const authenticate = asyncHandler(async (req, res, next) => {
 });
 
 export const optionalAuthenticate = asyncHandler(async (req, res, next) => {
-  const token = req.cookies?.[env.COOKIE_NAME] || 
+  const token = req.cookies?.[env.COOKIE_NAME] ||
     req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (token) {
     try {
       const decoded = jwt.verify(token, env.JWT_SECRET);

@@ -19,6 +19,12 @@ describe('AI API Routes', () => {
     });
   });
 
+  it('should require authentication for private AI conversations', async () => {
+    const res = await request(app).get('/api/v1/ai/conversations');
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
   describe('Tool Registry', () => {
     it('should have all 8 allowlisted tools registered', () => {
       const toolNames = toolRegistry.getAllTools().map(t => t.name);
