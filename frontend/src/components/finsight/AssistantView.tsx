@@ -83,7 +83,8 @@ Ask me anything—from purchase affordability to finding spending leaks or forec
     setLoading(true);
 
     try {
-      const response = await FinSightAPI.askAssistant(textToSend);
+      const historyPayload = messages.map((m) => ({ from: m.from, text: m.text }));
+      const response = await FinSightAPI.askAssistant(textToSend, undefined, historyPayload);
       setMessages((prev) => [
         ...prev,
         {

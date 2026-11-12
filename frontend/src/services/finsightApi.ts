@@ -1,4 +1,4 @@
-import { FinancialAgentEngine, DEFAULT_FINANCIAL_STATE } from "./financialAgentEngine";
+import { FinancialAgentEngine, DEFAULT_FINANCIAL_STATE, ChatHistoryTurn } from "./financialAgentEngine";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
 
@@ -264,7 +264,7 @@ export class FinSightAPI {
     ];
   }
 
-  static async askAssistant(query: string, conversationId?: string) {
+  static async askAssistant(query: string, conversationId?: string, history?: ChatHistoryTurn[]) {
     // 1. Check if user configured client-side LLM credentials (Groq / Gemini / OpenAI)
     try {
       const customProvider = localStorage.getItem("finsight_llm_provider") as any;
@@ -276,7 +276,7 @@ export class FinSightAPI {
           provider: customProvider || "groq",
           apiKey: customKey.trim(),
           model: customModel,
-        });
+        }, history);
       }
     } catch (e) {
       // Continue to backend / local engine
@@ -286,7 +286,7 @@ export class FinSightAPI {
     try {
       const res = await this.request<any>("/ai/chat", {
         method: "POST",
-        body: JSON.stringify({ message: query, query, conversationId }),
+        body: JSON.stringify({ message: query, query, conversationId, history }),
       });
 
       const text = res.message || res.text || res.response || res.data?.message || res.data?.response;
@@ -305,7 +305,7 @@ export class FinSightAPI {
     }
 
     // 3. High-precision Built-in Financial Intelligence Engine
-    return await FinancialAgentEngine.processQuery(query, DEFAULT_FINANCIAL_STATE);
+    return await FinancialAgentEngine.processQuery(query, DEFAULT_FINANCIAL_STATE, undefined, history);
   }
 
   static async createPayPalOrder(data: { amount: number; merchantName?: string; description?: string }) {
