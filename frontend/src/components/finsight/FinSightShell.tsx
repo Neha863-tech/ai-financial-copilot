@@ -3,12 +3,18 @@ import {
   LayoutDashboard,
   Receipt,
   ShoppingBag,
+  FileText,
   BarChart3,
   Target,
+  RefreshCw,
+  Calendar,
   Bot,
   TrendingUp,
-  RefreshCw,
+  Crosshair,
   Landmark,
+  Sparkles,
+  UploadCloud,
+  Bell,
   Settings,
   Sun,
   Moon,
@@ -18,20 +24,25 @@ import {
   Activity,
   LogIn,
   LogOut,
-  User as UserIcon,
 } from "lucide-react";
 import { FinSightAPI, FinancialPulse, TransactionItem } from "../../services/finsightApi";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth/AuthModal";
 import { OverviewView } from "./OverviewView";
 import { TransactionsView } from "./TransactionsView";
+import { PurchasesView } from "./PurchasesView";
+import { FinancialReportsView } from "./FinancialReportsView";
 import { AnalyticsView } from "./AnalyticsView";
+import { BudgetsView } from "./BudgetsView";
+import { BillsView } from "./BillsView";
+import { FinancialCalendarView } from "./FinancialCalendarView";
 import { AssistantView } from "./AssistantView";
 import { ForecastView } from "./ForecastView";
-import { BillsView } from "./BillsView";
-import { PurchasesView } from "./PurchasesView";
-import { BudgetsView } from "./BudgetsView";
+import { GoalsView } from "./GoalsView";
 import { ConnectedAccountsView } from "./ConnectedAccountsView";
+import { ShoppingIntelligenceView } from "./ShoppingIntelligenceView";
+import { ImportTransactionsView } from "./ImportTransactionsView";
+import { NotificationsView } from "./NotificationsView";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { PayPalCheckoutModal } from "./PayPalCheckoutModal";
 import { Toaster, toast } from "sonner";
@@ -64,7 +75,7 @@ export const FinSightShell: React.FC = () => {
       setPulse(p);
       setTransactions(t);
     } catch {
-      // Graceful fallback already in API client
+      // Graceful fallback
     }
   };
 
@@ -80,16 +91,23 @@ export const FinSightShell: React.FC = () => {
     }
   }, [darkMode]);
 
+  // Complete 16-section navigation per Section 10 of prompt
   const navItems = [
     { label: "Overview", icon: LayoutDashboard },
     { label: "Transactions", icon: Receipt },
     { label: "Purchases & Orders", icon: ShoppingBag },
-    { label: "Spending Analysis", icon: BarChart3 },
+    { label: "Financial Reports", icon: FileText, isNew: true },
+    { label: "Spending Analytics", icon: BarChart3 },
     { label: "Budgets", icon: Target },
+    { label: "Bills & Subscriptions", icon: RefreshCw },
+    { label: "Financial Calendar", icon: Calendar, isNew: true },
     { label: "AI Financial Assistant", icon: Bot, isNew: true },
     { label: "Financial Forecast", icon: TrendingUp },
-    { label: "Bills & Subscriptions", icon: RefreshCw },
+    { label: "Savings Goals", icon: Crosshair, isNew: true },
     { label: "Connected Accounts", icon: Landmark },
+    { label: "Shopping Intelligence", icon: Sparkles, isNew: true },
+    { label: "Import Transactions", icon: UploadCloud, isNew: true },
+    { label: "Notifications", icon: Bell, isNew: true },
     { label: "Settings", icon: Settings },
   ];
 
@@ -108,11 +126,11 @@ export const FinSightShell: React.FC = () => {
       <aside
         className={`${
           collapsed ? "w-18" : "w-64"
-        } bg-white dark:bg-[#121f1c] border-r border-slate-200 dark:border-[#21352f] p-5 flex flex-col flex-shrink-0 transition-all duration-300 z-30`}
+        } bg-white dark:bg-[#121f1c] border-r border-slate-200 dark:border-[#21352f] p-4 flex flex-col flex-shrink-0 transition-all duration-300 z-30`}
       >
         {/* Brand */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <span className="w-8 h-8 rounded-lg bg-[#16a57a] text-white flex items-center justify-center font-bold text-base flex-shrink-0">
+        <div className="flex items-center gap-2.5 mb-5 px-1">
+          <span className="w-8 h-8 rounded-lg bg-[#16a57a] text-white flex items-center justify-center font-bold text-base flex-shrink-0 shadow-xs">
             <Activity size={18} />
           </span>
           {!collapsed && (
@@ -122,11 +140,11 @@ export const FinSightShell: React.FC = () => {
           )}
         </div>
 
-        {/* Workspace Switcher */}
+        {/* Workspace Profile Badge */}
         {!collapsed && (
           <div
             onClick={!isAuthenticated ? openAuthModal : undefined}
-            className={`p-2.5 rounded-lg border border-slate-200 dark:border-[#21352f] flex items-center justify-between mb-5 text-xs ${
+            className={`p-2.5 rounded-lg border border-slate-200 dark:border-[#21352f] flex items-center justify-between mb-4 text-xs ${
               !isAuthenticated ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-[#152a23]" : ""
             }`}
           >
@@ -148,7 +166,7 @@ export const FinSightShell: React.FC = () => {
         )}
 
         {/* Navigation Menu */}
-        <nav className="space-y-1 flex-1">
+        <nav className="space-y-0.5 flex-1 overflow-y-auto pr-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.label;
@@ -164,12 +182,12 @@ export const FinSightShell: React.FC = () => {
                     : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-[#172c26]"
                 } ${collapsed ? "justify-center" : ""}`}
               >
-                <Icon size={17} />
+                <Icon size={16} />
                 {!collapsed && (
                   <span className="flex-1 text-left flex items-center justify-between">
-                    <span>{item.label}</span>
+                    <span className="truncate">{item.label}</span>
                     {item.isNew && (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      <span className="text-[8px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
                         NEW
                       </span>
                     )}
@@ -181,7 +199,7 @@ export const FinSightShell: React.FC = () => {
         </nav>
 
         {/* Sidebar Footer Controls */}
-        <div className="pt-4 border-t border-slate-100 dark:border-[#21352f] space-y-2">
+        <div className="pt-3 border-t border-slate-100 dark:border-[#21352f] space-y-2">
           {/* Dark Mode Toggle */}
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -190,7 +208,7 @@ export const FinSightShell: React.FC = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+              {darkMode ? <Sun size={15} /> : <Moon size={15} />}
               {!collapsed && <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>}
             </div>
             {!collapsed && (
@@ -227,6 +245,16 @@ export const FinSightShell: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Quick Notifications Pill */}
+            <button
+              onClick={() => setCurrentPage("Notifications")}
+              className="p-2 rounded-lg border border-slate-200 dark:border-[#21352f] hover:bg-slate-50 dark:hover:bg-[#172c26] text-slate-600 dark:text-slate-300 relative transition-all"
+              title="Notifications"
+            >
+              <Bell size={16} />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#16a57a]" />
+            </button>
+
             {/* PayPal Sandbox Action Button */}
             <button
               onClick={() => setPaypalModalOpen(true)}
@@ -291,19 +319,31 @@ export const FinSightShell: React.FC = () => {
             />
           )}
 
-          {currentPage === "Spending Analysis" && <AnalyticsView />}
+          {currentPage === "Purchases & Orders" && <PurchasesView />}
+
+          {currentPage === "Financial Reports" && <FinancialReportsView />}
+
+          {currentPage === "Spending Analytics" && <AnalyticsView />}
+
+          {currentPage === "Budgets" && <BudgetsView pulse={pulse} />}
+
+          {currentPage === "Bills & Subscriptions" && <BillsView />}
+
+          {currentPage === "Financial Calendar" && <FinancialCalendarView />}
 
           {currentPage === "AI Financial Assistant" && <AssistantView pulse={pulse} />}
 
           {currentPage === "Financial Forecast" && <ForecastView />}
 
-          {currentPage === "Bills & Subscriptions" && <BillsView />}
-
-          {currentPage === "Purchases & Orders" && <PurchasesView />}
-
-          {currentPage === "Budgets" && <BudgetsView pulse={pulse} />}
+          {currentPage === "Savings Goals" && <GoalsView />}
 
           {currentPage === "Connected Accounts" && <ConnectedAccountsView />}
+
+          {currentPage === "Shopping Intelligence" && <ShoppingIntelligenceView />}
+
+          {currentPage === "Import Transactions" && <ImportTransactionsView />}
+
+          {currentPage === "Notifications" && <NotificationsView />}
 
           {currentPage === "Settings" && (
             <section className="space-y-4 max-w-lg">

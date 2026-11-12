@@ -12,6 +12,11 @@ import reminderRoutes from './reminder.routes.js';
 import paypalRoutes from './paypal.routes.js';
 import simulatorRoutes from './simulator.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
+import reportsRoutes from './reports.routes.js';
+import calendarRoutes from './calendar.routes.js';
+import goalsRoutes from './goals.routes.js';
+import notificationsRoutes from './notifications.routes.js';
+import shoppingRoutes from './shopping.routes.js';
 
 const router = Router();
 
@@ -28,6 +33,10 @@ router.use('/recurring-payments', recurringRoutes);
 router.use('/reminders', reminderRoutes);
 router.use('/paypal', paypalRoutes);
 router.use('/simulator', simulatorRoutes);
+router.use('/reports', reportsRoutes);
+router.use('/calendar', calendarRoutes);
+router.use('/goals', goalsRoutes);
+router.use('/notifications', notificationsRoutes);
+router.use('/shopping', shoppingRoutes);
 
 export default router;
-

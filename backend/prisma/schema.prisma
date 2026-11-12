@@ -117,6 +117,16 @@ model User {
   reminders         Reminder[]
   conversations     AIConversation[]
   paymentOrders     PaymentOrder[]
+  accounts          Account[]
+  merchants         Merchant[]
+  purchases         Purchase[]
+  refunds           Refund[]
+  savingsGoals      SavingsGoal[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+  importBatches     ImportBatch[]
+  financialReports  FinancialReport[]
+  integrations      ConnectedIntegration[]
 }
 
 model Category {
@@ -157,6 +167,9 @@ model Transaction {
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   category             Category?             @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   paymentOrder         PaymentOrder?
+  paymentMethod        String?               @default("PayPal")
+  accountId            String?               @db.Uuid
+  account              Account?              @relation(fields: [accountId], references: [id], onDelete: SetNull)
 
   @@unique([userId, source, externalId])
   @@index([userId, transactionDate])
@@ -292,3 +305,230 @@ model PaymentOrder {
   @@index([userId, createdAt])
 }
 
+
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  PAYPAL
+  INVESTMENT
+  CASH
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+enum NotificationType {
+  BILL_DUE
+  BUDGET_EXCEEDED
+  BUDGET_WARNING
+  PAYPAL_PAYMENT
+  ANOMALY_DETECTED
+  SYSTEM
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  CUSTOM
+}
+
+model Account {
+  id            String        @id @default(uuid()) @db.Uuid
+  userId        String        @db.Uuid
+  name          String
+  type          AccountType   @default(CHECKING)
+  balance       Decimal       @default(0) @db.Decimal(18, 2)
+  currency      String        @default("INR") @db.VarChar(3)
+  accountNumber String?
+  institution   String?
+  isVerified    Boolean       @default(false)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+
+  @@index([userId, type])
+}
+
+model Merchant {
+  id               String        @id @default(uuid()) @db.Uuid
+  userId           String        @db.Uuid
+  name             String
+  normalizedName   String
+  category         String?
+  logoUrl          String?
+  totalSpent       Decimal       @default(0) @db.Decimal(18, 2)
+  transactionCount Int           @default(0)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(6)
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, normalizedName])
+  @@index([userId, totalSpent])
+}
+
+model Purchase {
+  id                String         @id @default(uuid()) @db.Uuid
+  userId            String         @db.Uuid
+  orderNumber       String
+  merchant          String
+  totalAmount       Decimal        @db.Decimal(18, 2)
+  currency          String         @default("INR") @db.VarChar(3)
+  status            PurchaseStatus @default(COMPLETED)
+  purchaseDate      DateTime       @default(now()) @db.Timestamptz(6)
+  deliveryDate      DateTime?      @db.Timestamptz(6)
+  trackingNumber    String?
+  paymentMethod     String?
+  externalReference String?
+  transactionId     String?        @db.Uuid
+  createdAt         DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(6)
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items             PurchaseItem[]
+
+  @@index([userId, purchaseDate])
+  @@index([userId, merchant])
+}
+
+model PurchaseItem {
+  id          String    @id @default(uuid()) @db.Uuid
+  purchaseId  String    @db.Uuid
+  name        String
+  category    String?
+  quantity    Int       @default(1)
+  unitPrice   Decimal   @db.Decimal(18, 2)
+  totalPrice  Decimal   @db.Decimal(18, 2)
+  imageUrl    String?
+  productUrl  String?
+  channel3Id  String?
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseId])
+}
+
+model Refund {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  transactionId String?           @db.Uuid
+  amount        Decimal           @db.Decimal(18, 2)
+  currency      String            @default("INR") @db.VarChar(3)
+  reason        String?
+  refundDate    DateTime          @default(now()) @db.Timestamptz(6)
+  status        TransactionStatus @default(COMPLETED)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, refundDate])
+}
+
+model SavingsGoal {
+  id            String     @id @default(uuid()) @db.Uuid
+  userId        String     @db.Uuid
+  title         String
+  targetAmount  Decimal    @db.Decimal(18, 2)
+  currentAmount Decimal    @default(0) @db.Decimal(18, 2)
+  currency      String     @default("INR") @db.VarChar(3)
+  targetDate    DateTime   @db.Date
+  category      String?
+  status        GoalStatus @default(ACTIVE)
+  createdAt     DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime   @updatedAt @db.Timestamptz(6)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, targetDate])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  actionUrl String?
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  action     String
+  entityType String
+  entityId   String
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entityType, createdAt])
+}
+
+model ImportBatch {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  filename       String
+  source         String   @default("CSV")
+  totalRecords   Int      @default(0)
+  importedCount  Int      @default(0)
+  duplicateCount Int      @default(0)
+  errorCount     Int      @default(0)
+  status         String   @default("COMPLETED")
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model FinancialReport {
+  id           String       @id @default(uuid()) @db.Uuid
+  userId       String       @db.Uuid
+  title        String
+  period       ReportPeriod
+  startDate    DateTime     @db.Date
+  endDate      DateTime     @db.Date
+  totalIncome  Decimal      @db.Decimal(18, 2)
+  totalExpense Decimal      @db.Decimal(18, 2)
+  netSavings   Decimal      @db.Decimal(18, 2)
+  metrics      Json?
+  createdAt    DateTime     @default(now()) @db.Timestamptz(6)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, period, startDate])
+}
+
+model ConnectedIntegration {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  provider    String
+  name        String
+  status      String    @default("DISCONNECTED")
+  config      Json?
+  lastSyncAt  DateTime? @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
