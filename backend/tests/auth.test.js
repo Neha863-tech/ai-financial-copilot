@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import app from '../src/app.js';
 import prisma from '../src/db/prisma.js';
-import bcrypt from 'bcryptjs';
+import { authService } from '../src/services/auth.service.js';
 
 describe('Auth API Routes', () => {
   beforeEach(() => {
@@ -31,6 +31,30 @@ describe('Auth API Routes', () => {
 
       expect(res.status).toBe(422);
       expect(res.body.success).toBe(false);
+    });
+
+    it('should return an authenticated session after registration', async () => {
+      vi.spyOn(authService, 'register').mockResolvedValue({
+        id: '11111111-1111-1111-1111-111111111111',
+        fullName: 'Test User',
+        email: 'test@example.com',
+        preferredCurrency: 'INR',
+        timezone: 'Asia/Kolkata',
+        createdAt: new Date(),
+      });
+
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          fullName: 'Test User',
+          email: 'test@example.com',
+          password: 'Password123!',
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.user.email).toBe('test@example.com');
+      expect(res.body.data.token).toEqual(expect.any(String));
+      expect(res.headers['set-cookie']).toBeDefined();
     });
   });
 

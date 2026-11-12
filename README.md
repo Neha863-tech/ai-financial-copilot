@@ -2179,9 +2179,9 @@ Financial data requires careful handling even in a hackathon prototype.
 
 # 18. Environment variables
 
-Create `backend/.env.example` and `frontend/.env.example`. Commit only example files; add actual `.env` files to `.gitignore`.
+Create local `backend/.env` and, only if needed, `frontend/.env` files from the settings below. Keep real secrets in the backend environment and do not commit local `.env` files.
 
-## 18.1 Backend `.env.example`
+## 18.1 Backend `.env` settings
 
 ```env
 # Application
@@ -2217,7 +2217,7 @@ PAYPAL_CURRENCY=USD
 MAX_CSV_FILE_SIZE_MB=5
 ```
 
-## 18.2 Frontend `.env.example`
+## 18.2 Frontend `.env` settings
 
 ```env
 VITE_API_BASE_URL=http://localhost:5000/api/v1
@@ -2262,16 +2262,15 @@ Create a database named `financial_copilot`, or update `DATABASE_URL` to point t
 ```bash
 cd backend
 npm install
-cp .env.example .env
 ```
 
-Fill the environment variables in `backend/.env`.
+Create `backend/.env` using the settings in Section 18.1. Set a real PostgreSQL URL, a long random `JWT_SECRET`, and an AI provider/API key (`gemini` or `groq`). PayPal Sandbox credentials are needed only to exercise checkout.
 
 Run Prisma migrations and seed data:
 
 ```bash
-npx prisma generate
-npx prisma migrate dev --name init
+npm run db:generate
+npm run db:migrate
 npm run db:seed
 ```
 
@@ -2289,22 +2288,42 @@ Health endpoint:
 
 `GET http://localhost:5000/health`
 
-## 19.5 Configure and start the frontend
+## 19.5 Build and run the backend with Docker
+
+The Docker image contains the production backend. Create `backend/.env` as described above, and set `DATABASE_URL` to a PostgreSQL host reachable from the container (for example, use `host.docker.internal` instead of `localhost` when connecting to a database on the host).
+
+From the repository root:
+
+```bash
+docker build -t ai-financial-copilot-backend .
+docker run --rm --name ai-financial-copilot-backend -p 5000:5000 --env-file backend/.env ai-financial-copilot-backend
+```
+
+Apply database migrations before starting the application:
+
+```bash
+docker run --rm --env-file backend/.env ai-financial-copilot-backend npm run db:deploy
+```
+
+The API is available at `http://localhost:5000`; its health endpoint is `http://localhost:5000/health`.
+
+## 19.6 Configure and start the frontend
 
 Open another terminal:
 
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 npm run dev
 ```
+
+The frontend defaults to `http://localhost:5000/api/v1`. Set `VITE_API_BASE_URL` in `frontend/.env` only when the backend is hosted elsewhere.
 
 Expected frontend URL:
 
 `http://localhost:5173`
 
-## 19.6 Suggested package scripts
+## 19.7 Suggested package scripts
 
 Backend `package.json`:
 

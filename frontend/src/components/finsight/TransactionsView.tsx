@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef, ICellRendererParams } from "ag-grid-community";
-import { Plus, Search, FileUp, Download, Check, X, ShieldCheck } from "lucide-react";
+import { Plus, Search, FileUp, Download } from "lucide-react";
 import { TransactionItem, FinSightAPI } from "../../services/finsightApi";
 import { toast } from "sonner";
 
@@ -14,7 +14,9 @@ interface Props {
 export const TransactionsView: React.FC<Props> = ({ transactions, onRefresh, onOpenAddModal }) => {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [importing, setImporting] = useState(false);
   const gridRef = useRef<AgGridReact>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredData = useMemo(() => {
     return transactions.filter((t) => {
@@ -27,6 +29,10 @@ export const TransactionsView: React.FC<Props> = ({ transactions, onRefresh, onO
       return matchCat && matchSearch;
     });
   }, [transactions, search, categoryFilter]);
+  const categories = useMemo(
+    () => [...new Set(transactions.map((transaction) => transaction.category))].sort(),
+    [transactions]
+  );
 
   const columnDefs: ColDef<TransactionItem>[] = useMemo(
     () => [
@@ -110,6 +116,23 @@ export const TransactionsView: React.FC<Props> = ({ transactions, onRefresh, onO
     }
   };
 
+  const handleImportCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setImporting(true);
+    try {
+      const result = await FinSightAPI.importTransactions(file);
+      toast.success(`Imported ${result.imported} transaction(s); skipped ${result.skipped}.`);
+      onRefresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "CSV import failed.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <section className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -149,19 +172,23 @@ export const TransactionsView: React.FC<Props> = ({ transactions, onRefresh, onO
           className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] text-xs text-slate-700 dark:text-slate-200 outline-none"
         >
           <option>All</option>
-          <option>Shopping</option>
-          <option>Food & dining</option>
-          <option>Utilities</option>
-          <option>Rent & home</option>
-          <option>Transport</option>
-          <option>Income</option>
+          {categories.map((category) => <option key={category}>{category}</option>)}
         </select>
 
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleImportCsv}
+          className="hidden"
+          aria-label="Choose a transaction CSV file"
+        />
         <button
-          onClick={() => toast.info("CSV import wizard ready for bank statement upload")}
-          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] hover:bg-slate-50 dark:hover:bg-[#183129] text-xs font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={importing}
+          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-[#21352f] bg-white dark:bg-[#121f1c] hover:bg-slate-50 dark:hover:bg-[#183129] text-xs font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5 disabled:opacity-50"
         >
-          <FileUp size={15} /> Import CSV
+          <FileUp size={15} /> {importing ? "Importing…" : "Import CSV"}
         </button>
 
         <button

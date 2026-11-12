@@ -1,12 +1,14 @@
 import { authService } from '../services/auth.service.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { setTokenCookie, clearTokenCookie } from '../utils/generateToken.js';
+import { generateToken, setTokenCookie, clearTokenCookie } from '../utils/generateToken.js';
 
 export const authController = {
   register: asyncHandler(async (req, res) => {
     const user = await authService.register(req.body);
-    res.status(201).json(ApiResponse.created('User registered successfully', { user }));
+    const token = generateToken(user.id);
+    setTokenCookie(res, token);
+    res.status(201).json(ApiResponse.created('User registered successfully', { user, token }));
   }),
 
   login: asyncHandler(async (req, res) => {

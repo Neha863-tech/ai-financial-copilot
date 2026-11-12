@@ -36,41 +36,67 @@ import { AddTransactionModal } from "./AddTransactionModal";
 import { PayPalCheckoutModal } from "./PayPalCheckoutModal";
 import { Toaster, toast } from "sonner";
 
+const EMPTY_PULSE: FinancialPulse = {
+  totalIncome: 0,
+  totalExpenses: 0,
+  currentSavings: 0,
+  savingsRate: 0,
+  budgetRemaining: 0,
+  budgetLimit: 0,
+  budgetUtilizationPct: 0,
+  categoryBreakdown: [],
+  monthlyTrends: [],
+};
+
 export const FinSightShell: React.FC = () => {
-  const { user, isAuthenticated, openAuthModal, logout } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading, openAuthModal, logout, updateProfile } = useAuth();
   const [currentPage, setCurrentPage] = useState("Overview");
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [paypalModalOpen, setPaypalModalOpen] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
 
-  const [pulse, setPulse] = useState<FinancialPulse>({
-    totalIncome: 88000,
-    totalExpenses: 49800,
-    currentSavings: 38200,
-    savingsRate: 43.4,
-    budgetRemaining: 14200,
-    budgetLimit: 64000,
-    budgetUtilizationPct: 72,
-    categoryBreakdown: [],
-    monthlyTrends: [],
-  });
+  useEffect(() => {
+    setProfileName(user?.fullName || "");
+  }, [user]);
+
+  const saveProfile = async () => {
+    setProfileSaving(true);
+    try {
+      await updateProfile({ fullName: profileName });
+      toast.success("Profile updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not update your profile.");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const [pulse, setPulse] = useState<FinancialPulse>(EMPTY_PULSE);
 
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
 
   const loadData = async () => {
+    if (!isAuthenticated) {
+      setPulse(EMPTY_PULSE);
+      setTransactions([]);
+      return;
+    }
+
     try {
       const [p, t] = await Promise.all([FinSightAPI.getOverview(), FinSightAPI.getTransactions()]);
       setPulse(p);
       setTransactions(t);
-    } catch {
-      // Graceful fallback already in API client
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not load your financial data.");
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, [isAuthenticated]);
+    if (!authLoading) void loadData();
+  }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
     if (darkMode) {
@@ -100,7 +126,7 @@ export const FinSightShell: React.FC = () => {
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "AS";
+    : "FS";
 
   return (
     <div className={`min-h-screen flex bg-[#f7f9fc] dark:bg-[#0b1311] text-[#101828] dark:text-[#f2f7f5] transition-colors duration-200`}>
@@ -117,7 +143,7 @@ export const FinSightShell: React.FC = () => {
           </span>
           {!collapsed && (
             <span className="font-heading font-bold text-lg text-slate-900 dark:text-white">
-              FinSight<span className="text-[#16a57a]">AI</span>
+            FinSight<span className="text-[#16a57a]">AI</span>
             </span>
           )}
         </div>
@@ -136,7 +162,7 @@ export const FinSightShell: React.FC = () => {
               </span>
               <div>
                 <strong className="block font-semibold text-slate-900 dark:text-white truncate max-w-[120px]">
-                  {user?.fullName ? `${user.fullName}` : "Arjun Sharma"}
+                  {user?.fullName || "Personal account"}
                 </strong>
                 <span className="text-[10px] text-slate-400 truncate max-w-[120px] block">
                   {user?.email || "Personal Account"}
@@ -228,20 +254,20 @@ export const FinSightShell: React.FC = () => {
 
           <div className="flex items-center gap-3">
             {/* PayPal Sandbox Action Button */}
-            <button
+            {isAuthenticated && <button
               onClick={() => setPaypalModalOpen(true)}
               className="px-3.5 py-1.5 rounded-lg bg-[#FFC439] hover:bg-[#F2BA36] text-[#003087] font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
             >
               <span className="italic font-extrabold">P</span>
               <span>Test PayPal Sandbox</span>
-            </button>
+            </button>}
 
-            <button
+            {isAuthenticated && <button
               onClick={() => setAddModalOpen(true)}
               className="px-3.5 py-1.5 rounded-lg bg-[#16a57a] hover:bg-[#138e69] text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs"
             >
               <Plus size={15} /> Add Entry
-            </button>
+            </button>}
 
             {/* User Session Profile / Sign In */}
             {isAuthenticated ? (
@@ -274,16 +300,35 @@ export const FinSightShell: React.FC = () => {
 
         {/* Dynamic View Container */}
         <div className="p-6 md:p-8 max-w-7xl mx-auto w-full flex-1">
-          {currentPage === "Overview" && (
+          {authLoading ? (
+            <div className="flex min-h-64 items-center justify-center text-sm text-slate-500">
+              Loading your account…
+            </div>
+          ) : !isAuthenticated ? (
+            <section className="mx-auto mt-12 max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-[#21352f] dark:bg-[#121f1c]">
+              <Activity className="mx-auto mb-4 text-[#16a57a]" size={32} />
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white">Your finances, in one place</h1>
+              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                Sign in or create an account to load your private ledger, budgets, and AI assistant.
+              </p>
+              <button
+                onClick={openAuthModal}
+                className="mt-5 rounded-lg bg-[#16a57a] px-4 py-2 text-sm font-semibold text-white hover:bg-[#138e69]"
+              >
+                Sign in or create account
+              </button>
+            </section>
+          ) : currentPage === "Overview" ? (
             <OverviewView
               pulse={pulse}
               transactions={transactions}
+              userName={user?.fullName || "there"}
               onOpenAddModal={() => setAddModalOpen(true)}
               onNavigate={(page) => setCurrentPage(page)}
             />
-          )}
+          ) : null}
 
-          {currentPage === "Transactions" && (
+          {isAuthenticated && currentPage === "Transactions" && (
             <TransactionsView
               transactions={transactions}
               onRefresh={loadData}
@@ -291,52 +336,38 @@ export const FinSightShell: React.FC = () => {
             />
           )}
 
-          {currentPage === "Spending Analysis" && <AnalyticsView />}
+          {isAuthenticated && currentPage === "Spending Analysis" && <AnalyticsView />}
 
-          {currentPage === "AI Financial Assistant" && <AssistantView pulse={pulse} />}
+          {isAuthenticated && currentPage === "AI Financial Assistant" && <AssistantView pulse={pulse} />}
 
-          {currentPage === "Financial Forecast" && <ForecastView />}
+          {isAuthenticated && currentPage === "Financial Forecast" && <ForecastView />}
 
-          {currentPage === "Bills & Subscriptions" && <BillsView />}
+          {isAuthenticated && currentPage === "Bills & Subscriptions" && <BillsView />}
 
-          {currentPage === "Purchases & Orders" && <PurchasesView />}
+          {isAuthenticated && currentPage === "Purchases & Orders" && <PurchasesView />}
 
-          {currentPage === "Budgets" && <BudgetsView pulse={pulse} />}
+          {isAuthenticated && currentPage === "Budgets" && <BudgetsView />}
 
-          {currentPage === "Connected Accounts" && <ConnectedAccountsView />}
+          {isAuthenticated && currentPage === "Connected Accounts" && <ConnectedAccountsView />}
 
-          {currentPage === "Settings" && (
+          {isAuthenticated && currentPage === "Settings" && (
             <section className="space-y-4 max-w-lg">
               <h1 className="text-xl font-bold font-heading">Settings & Preferences</h1>
               <div className="p-5 bg-white dark:bg-[#121f1c] rounded-xl border border-slate-200 dark:border-[#21352f] space-y-3 text-xs">
                 <div>
                   <label className="text-slate-400 block mb-1">User Name</label>
                   <input
-                    defaultValue={user?.fullName || "Arjun Sharma"}
+                    value={profileName}
+                    onChange={(event) => setProfileName(event.target.value)}
                     className="w-full p-2 border rounded-md dark:bg-transparent"
                   />
                 </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Preferred Currency</label>
-                  <select className="w-full p-2 border rounded-md dark:bg-transparent">
-                    <option>INR (₹)</option>
-                    <option>USD ($)</option>
-                    <option>EUR (€)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Monthly Income Baseline</label>
-                  <input defaultValue="88000" className="w-full p-2 border rounded-md dark:bg-transparent font-semibold" />
-                </div>
-                <div>
-                  <label className="text-slate-400 block mb-1">Monthly Savings Goal</label>
-                  <input defaultValue="35000" className="w-full p-2 border rounded-md dark:bg-transparent font-semibold" />
-                </div>
                 <button
-                  onClick={() => toast.success("Preferences updated")}
+                  onClick={saveProfile}
+                  disabled={profileSaving || profileName.trim().length < 2}
                   className="px-4 py-2 bg-[#16a57a] text-white rounded-lg font-semibold"
                 >
-                  Save settings
+                  {profileSaving ? "Saving…" : "Save profile"}
                 </button>
               </div>
             </section>
@@ -345,17 +376,21 @@ export const FinSightShell: React.FC = () => {
       </main>
 
       {/* Modals */}
-      <AddTransactionModal
-        isOpen={addModalOpen}
-        onClose={() => setAddModalOpen(false)}
-        onSuccess={loadData}
-      />
+      {isAuthenticated && (
+        <AddTransactionModal
+          isOpen={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onSuccess={loadData}
+        />
+      )}
 
-      <PayPalCheckoutModal
-        isOpen={paypalModalOpen}
-        onClose={() => setPaypalModalOpen(false)}
-        onSuccess={loadData}
-      />
+      {isAuthenticated && (
+        <PayPalCheckoutModal
+          isOpen={paypalModalOpen}
+          onClose={() => setPaypalModalOpen(false)}
+          onSuccess={loadData}
+        />
+      )}
 
       <AuthModal />
 

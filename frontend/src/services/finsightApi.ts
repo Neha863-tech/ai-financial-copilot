@@ -1,18 +1,68 @@
-import { FinancialAgentEngine, DEFAULT_FINANCIAL_STATE, ChatHistoryTurn } from "./financialAgentEngine";
+const configuredApiUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "");
+export const API_BASE_URL = configuredApiUrl
+  ? /\/api(?:\/v1)?$/i.test(configuredApiUrl)
+    ? configuredApiUrl
+    : `${configuredApiUrl}/api/v1`
+  : "http://localhost:5000/api/v1";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+interface ApiEnvelope<T> {
+  data?: T;
+  message?: string;
+  errors?: Array<{ message?: string }>;
+}
 
 export interface TransactionItem {
-  id?: string;
+  id: string;
   merchant: string;
   category: string;
   date: string;
   paymentMethod: string;
   amount: number;
+  currency: string;
   type: "INCOME" | "EXPENSE";
-  status?: string;
-  referenceId?: string;
-  paypalOrderId?: string;
+  status: string;
+  source: string;
+  referenceId?: string | null;
+}
+
+export interface CategoryItem {
+  id: string;
+  name: string;
+  direction: "INCOME" | "EXPENSE" | "BOTH";
+}
+
+export interface BudgetItem {
+  id: string;
+  name: string;
+  amount: number;
+  spent: number;
+  remaining: number;
+  utilization: number;
+  status: string;
+  currency: string;
+  categoryId: string | null;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface RecurringBillItem {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  frequency: string;
+  status: string;
+  dueDate: string | null;
+  confidence: string;
+}
+
+export interface ReminderItem {
+  id: string;
+  title: string;
+  amount: number | null;
+  currency: string | null;
+  dueAt: string;
+  status: "PENDING" | "COMPLETED" | "DISMISSED";
 }
 
 export interface FinancialPulse {
@@ -27,312 +77,419 @@ export interface FinancialPulse {
   monthlyTrends: { month: string; income: number; expenses: number; savings: number }[];
 }
 
+export interface SpendingPatterns {
+  categoryBreakdown: FinancialPulse["categoryBreakdown"];
+  monthlyTrends: FinancialPulse["monthlyTrends"];
+}
+
+interface TransactionRecord {
+  id: string;
+  merchant?: string | null;
+  description?: string | null;
+  amount: string | number;
+  direction: "INCOME" | "EXPENSE";
+  status: string;
+  source: string;
+  externalId?: string | null;
+  transactionDate: string;
+  currency: string;
+  category?: { name: string } | null;
+}
+
+interface DashboardResponse {
+  summary: {
+    totalIncome: string | number;
+    totalExpenses: string | number;
+    netCashFlow: string | number;
+    savingsRate: string | number | null;
+  };
+  categoryBreakdown: Array<{
+    categoryName: string;
+    total: string | number;
+  }>;
+  budgets: Array<{
+    amount: string | number;
+    spent: string | number;
+  }>;
+}
+
+const categoryColors = ["#1b9a72", "#f3a93b", "#e36d69", "#5b8def", "#9274d8", "#55b9bd"];
+
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const token = localStorage.getItem("finsight_token");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+    credentials: "include",
+  });
+  const payload = (await response.json().catch(() => null)) as ApiEnvelope<T> | null;
+
+  if (!response.ok) {
+    const message =
+      payload?.message ||
+      payload?.errors?.find((error) => error.message)?.message ||
+      `Request failed (${response.status})`;
+    const error = new Error(message) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
+
+  if (!payload) throw new Error("The API returned an invalid response.");
+  return (payload.data === undefined ? payload : payload.data) as T;
+}
+
+function toNumber(value: string | number | null | undefined): number {
+  const result = Number(value ?? 0);
+  return Number.isFinite(result) ? result : 0;
+}
+
+function mapTransaction(transaction: TransactionRecord): TransactionItem {
+  const date = new Date(transaction.transactionDate);
+  const sourceNames: Record<string, string> = {
+    MANUAL: "Manual",
+    CSV: "CSV import",
+    PAYPAL_REPORTING: "PayPal",
+    PAYPAL_CHECKOUT: "PayPal",
+    DEMO: "Demo",
+  };
+
+  return {
+    id: transaction.id,
+    merchant: transaction.merchant || transaction.description || "Transaction",
+    category: transaction.category?.name || "Uncategorized",
+    date: Number.isNaN(date.getTime())
+      ? transaction.transactionDate
+      : date.toLocaleDateString("en-IN", { month: "short", day: "2-digit", year: "numeric" }),
+    paymentMethod: sourceNames[transaction.source] || transaction.source,
+    amount:
+      (transaction.direction === "INCOME" ? 1 : -1) *
+      Math.abs(toNumber(transaction.amount)),
+    currency: transaction.currency,
+    type: transaction.direction,
+    status: transaction.status,
+    source: transaction.source,
+    referenceId: transaction.externalId,
+  };
+}
+
+function monthLabel(key: string): string {
+  const date = new Date(`${key}-01T00:00:00`);
+  return date.toLocaleDateString("en-IN", { month: "short" });
+}
+
+function getSixMonthRange(): { startDate: string; endDate: string } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return { startDate: start.toISOString(), endDate: end.toISOString() };
+}
+
 export class FinSightAPI {
-  private static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE}${endpoint}`;
-    const token = localStorage.getItem("finsight_token") || localStorage.getItem("token");
-
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      ...(options.headers as Record<string, string>),
-    };
-
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(url, { ...options, headers });
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
-    }
-    return response.json();
-  }
-
   static async getOverview(): Promise<FinancialPulse> {
-    try {
-      const res = await this.request<any>("/dashboard");
-      if (res && res.kpis) {
-        return {
-          totalIncome: res.kpis.totalIncome ?? 88000,
-          totalExpenses: res.kpis.totalExpenses ?? 49800,
-          currentSavings: res.kpis.netSavings ?? 38200,
-          savingsRate: res.kpis.savingsRate ?? 43.4,
-          budgetRemaining: res.kpis.budgetRemaining ?? 14200,
-          budgetLimit: res.kpis.budgetLimit ?? 64000,
-          budgetUtilizationPct: res.kpis.budgetUtilizationPct ?? 72,
-          categoryBreakdown: res.categoryBreakdown || [
-            { name: "Rent & home", amount: 15000, color: "#1b9a72" },
-            { name: "Food & dining", amount: 9200, color: "#f3a93b" },
-            { name: "Shopping", amount: 6800, color: "#e36d69" },
-            { name: "Transport", amount: 4200, color: "#5b8def" },
-            { name: "Education", amount: 3500, color: "#9274d8" },
-            { name: "Utilities", amount: 3000, color: "#55b9bd" },
-          ],
-          monthlyTrends: res.monthlyTrends || [
-            { month: "Apr", income: 82000, expenses: 52400, savings: 29600 },
-            { month: "May", income: 82000, expenses: 49800, savings: 32200 },
-            { month: "Jun", income: 85000, expenses: 55700, savings: 29300 },
-            { month: "Jul", income: 85000, expenses: 48200, savings: 36800 },
-            { month: "Aug", income: 85000, expenses: 51100, savings: 33900 },
-            { month: "Sep", income: 88000, expenses: 49800, savings: 38200 },
-          ],
-        };
-      }
-    } catch {
-      // Try secondary endpoint
-      try {
-        return await this.request<FinancialPulse>("/analytics/overview");
-      } catch {
-        // Fallback to verified local baseline
-      }
-    }
+    const range = getSixMonthRange();
+    const [dashboard, trendsResponse, budgets] = await Promise.all([
+      request<DashboardResponse>("/dashboard"),
+      request<{ trends: Array<{ month: string; income: string | number; expenses: string | number }> }>(
+        `/analytics/trends?${new URLSearchParams({ ...range, currency: "INR" })}`
+      ),
+      this.getBudgets(),
+    ]);
+
+    const totalIncome = toNumber(dashboard.summary.totalIncome);
+    const totalExpenses = toNumber(dashboard.summary.totalExpenses);
+    const now = new Date();
+    const currentBudgets = budgets.filter((budget) => {
+      const start = new Date(budget.periodStart);
+      return start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth();
+    });
+    const budgetLimit = currentBudgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const budgetSpent = currentBudgets.reduce((sum, budget) => sum + budget.spent, 0);
 
     return {
-      totalIncome: 88000,
-      totalExpenses: 49800,
-      currentSavings: 38200,
-      savingsRate: 43.4,
-      budgetRemaining: 14200,
-      budgetLimit: 64000,
-      budgetUtilizationPct: 72,
-      categoryBreakdown: [
-        { name: "Rent & home", amount: 15000, color: "#1b9a72" },
-        { name: "Food & dining", amount: 9200, color: "#f3a93b" },
-        { name: "Shopping", amount: 6800, color: "#e36d69" },
-        { name: "Transport", amount: 4200, color: "#5b8def" },
-        { name: "Education", amount: 3500, color: "#9274d8" },
-        { name: "Utilities", amount: 3000, color: "#55b9bd" },
-      ],
-      monthlyTrends: [
-        { month: "Apr", income: 82000, expenses: 52400, savings: 29600 },
-        { month: "May", income: 82000, expenses: 49800, savings: 32200 },
-        { month: "Jun", income: 85000, expenses: 55700, savings: 29300 },
-        { month: "Jul", income: 85000, expenses: 48200, savings: 36800 },
-        { month: "Aug", income: 85000, expenses: 51100, savings: 33900 },
-        { month: "Sep", income: 88000, expenses: 49800, savings: 38200 },
-      ],
+      totalIncome,
+      totalExpenses,
+      currentSavings: toNumber(dashboard.summary.netCashFlow),
+      savingsRate: toNumber(dashboard.summary.savingsRate),
+      budgetRemaining: budgetLimit - budgetSpent,
+      budgetLimit,
+      budgetUtilizationPct: budgetLimit > 0 ? (budgetSpent / budgetLimit) * 100 : 0,
+      categoryBreakdown: dashboard.categoryBreakdown.map((category, index) => ({
+        name: category.categoryName,
+        amount: toNumber(category.total),
+        color: categoryColors[index % categoryColors.length],
+      })),
+      monthlyTrends: trendsResponse.trends.map((trend) => ({
+        month: monthLabel(trend.month),
+        income: toNumber(trend.income),
+        expenses: toNumber(trend.expenses),
+        savings: toNumber(trend.income) - toNumber(trend.expenses),
+      })),
     };
   }
 
-  static async getTransactions(search = "", category = "All"): Promise<TransactionItem[]> {
-    try {
-      const query = new URLSearchParams();
-      if (search) query.set("search", search);
-      if (category && category !== "All") query.set("category", category);
-      const res = await this.request<{ transactions: any[] } | any>(`/transactions?${query.toString()}`);
-      const list = res.transactions || res.data || (Array.isArray(res) ? res : []);
-      if (list.length > 0) {
-        return list.map((t: any) => ({
-          id: t.id,
-          merchant: t.merchant || t.merchantName || "Merchant",
-          category: t.category || "General",
-          date: t.date ? new Date(t.date).toLocaleDateString("en-IN", { month: "short", day: "2-digit", year: "numeric" }) : "Recent",
-          paymentMethod: t.paymentMethod || "PayPal",
-          amount: t.type === "INCOME" ? Math.abs(Number(t.amount)) : -Math.abs(Number(t.amount)),
-          type: t.type || "EXPENSE",
-          referenceId: t.referenceId,
-          paypalOrderId: t.paypalOrderId,
-        }));
-      }
-    } catch {
-      // Fallback
-    }
+  static async getTransactions(filters: {
+    search?: string;
+    category?: string;
+    source?: string;
+  } = {}): Promise<TransactionItem[]> {
+    const query = new URLSearchParams({ page: "1", limit: "100" });
+    if (filters.search) query.set("search", filters.search);
+    if (filters.source) query.set("source", filters.source);
 
-    return [
-      { merchant: "Monthly Rent", category: "Rent & home", date: "Sep 01, 2024", paymentMethod: "HDFC Bank", amount: -15000, type: "EXPENSE" },
-      { merchant: "Amazon Shopping", category: "Shopping", date: "Sep 09, 2024", paymentMethod: "PayPal", amount: -2499, type: "EXPENSE" },
-      { merchant: "Fresh Basket", category: "Food & dining", date: "Sep 08, 2024", paymentMethod: "ICICI Card", amount: -1840, type: "EXPENSE" },
-      { merchant: "Salary credit", category: "Income", date: "Sep 05, 2024", paymentMethod: "HDFC Bank", amount: 88000, type: "INCOME" },
-      { merchant: "Netflix Subscription", category: "Entertainment", date: "Sep 03, 2024", paymentMethod: "PayPal", amount: -649, type: "EXPENSE" },
-      { merchant: "Electricity Bill", category: "Utilities", date: "Sep 02, 2024", paymentMethod: "UPI", amount: -2180, type: "EXPENSE" },
-    ];
+    const records = await request<TransactionRecord[]>(`/transactions?${query}`);
+    const transactions = records.map(mapTransaction);
+    return filters.category && filters.category !== "All"
+      ? transactions.filter((transaction) => transaction.category === filters.category)
+      : transactions;
   }
 
-  static async addTransaction(tx: { merchant: string; amount: number; type: string; category: string; paymentMethod: string; date?: string }) {
-    try {
-      return await this.request("/transactions", {
-        method: "POST",
-        body: JSON.stringify(tx),
-      });
-    } catch {
-      return { success: true, ...tx };
-    }
+  static async addTransaction(transaction: {
+    merchant: string;
+    amount: number;
+    direction: "INCOME" | "EXPENSE";
+    categoryId?: string | null;
+    transactionDate: string;
+    currency?: string;
+  }): Promise<TransactionItem> {
+    const result = await request<{ transaction: TransactionRecord }>("/transactions", {
+      method: "POST",
+      body: JSON.stringify(transaction),
+    });
+    return mapTransaction(result.transaction);
   }
 
-  static async getSpendingPatterns() {
-    try {
-      const res = await this.request<any>("/analytics/spending-patterns");
-      if (res) return res;
-    } catch {
-      try {
-        const res2 = await this.request<any>("/analytics/overview");
-        if (res2) return res2;
-      } catch {
-        // Fallback
-      }
-    }
+  static async importTransactions(file: File): Promise<{ imported: number; skipped: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request("/transactions/import/csv", { method: "POST", body: formData });
+  }
 
+  static async getCategories(): Promise<CategoryItem[]> {
+    const result = await request<{ categories: CategoryItem[] }>("/categories");
+    return result.categories;
+  }
+
+  static async getBudgets(): Promise<BudgetItem[]> {
+    const result = await request<{ budgets: Array<{
+      id: string;
+      amount: string | number;
+      spent: string | number;
+      remaining: string | number;
+      utilization: number;
+      status: string;
+      currency: string;
+      categoryId: string | null;
+      category?: { name: string } | null;
+      periodStart: string;
+      periodEnd: string;
+    }> }>("/budgets");
+
+    return result.budgets.map((budget) => ({
+      id: budget.id,
+      name: budget.category?.name || "Overall",
+      amount: toNumber(budget.amount),
+      spent: toNumber(budget.spent),
+      remaining: toNumber(budget.remaining),
+      utilization: toNumber(budget.utilization),
+      status: budget.status,
+      currency: budget.currency,
+      categoryId: budget.categoryId,
+      periodStart: budget.periodStart,
+      periodEnd: budget.periodEnd,
+    }));
+  }
+
+  static async createBudget(payload: {
+    categoryId?: string | null;
+    amount: number;
+    currency: string;
+    periodStart: string;
+    periodEnd: string;
+  }): Promise<void> {
+    await request("/budgets", { method: "POST", body: JSON.stringify(payload) });
+  }
+
+  static async getSpendingPatterns(): Promise<SpendingPatterns> {
+    const pulse = await this.getOverview();
     return {
-      dailyRhythm: [
-        { d: "Mon", v: 3100 },
-        { d: "Tue", v: 2800 },
-        { d: "Wed", v: 4200 },
-        { d: "Thu", v: 3500 },
-        { d: "Fri", v: 5100 },
-        { d: "Sat", v: 6800 },
-        { d: "Sun", v: 5700 },
-      ],
-      highlights: [
-        { label: "Weekend spending", value: "+32%", sub: "higher than weekdays", tone: "coral" },
-        { label: "Recurring payments", value: "3 detected", sub: "₹2,750 per month", tone: "amber" },
-        { label: "Unusual activity", value: "1 flagged", sub: "Amazon · ₹2,499", tone: "blue" },
-        { label: "Smart opportunity", value: "₹2,000", sub: "potential monthly savings", tone: "mint" },
-      ],
+      categoryBreakdown: pulse.categoryBreakdown,
+      monthlyTrends: pulse.monthlyTrends,
     };
   }
 
-  static async simulateForecast(reductionPercent: number) {
-    try {
-      return await this.request<any>("/simulator/simulate", {
+  static async simulateForecast(reductionPercentage: number) {
+    const { startDate, endDate } = getSixMonthRange();
+    const [result, pulse] = await Promise.all([
+      request<{ simulation: {
+        baselineMonthlySpend: string | number;
+        estimatedMonthlySavings: string | number;
+        estimatedTotalSavings: string | number;
+        months: number;
+        disclaimer: string;
+      } }>("/simulator/savings", {
         method: "POST",
-        body: JSON.stringify({ reductionPercent }),
-      });
-    } catch {
-      try {
-        return await this.request<any>("/analytics/simulate-forecast", {
-          method: "POST",
-          body: JSON.stringify({ reductionPercent }),
-        });
-      } catch {
-        const monthly = Math.round((49800 * reductionPercent) / 100);
-        return {
-          reductionPercent,
-          monthlySavingsIncrease: monthly,
-          annualSavingsIncrease: monthly * 12,
-          projection: [
-            { m: "Now", a: 38200, b: 38200 },
-            { m: "3 mo", a: 55600, b: 44000 },
-            { m: "6 mo", a: 73000, b: 51000 },
-            { m: "9 mo", a: 90400, b: 58000 },
-            { m: "12 mo", a: 107800, b: 65000 },
-          ],
-        };
-      }
-    }
+        body: JSON.stringify({ reductionPercentage, months: 12, startDate, endDate }),
+      }),
+      this.getOverview(),
+    ]);
+
+    const monthlyIncrease = toNumber(result.simulation.estimatedMonthlySavings);
+    const points = Array.from({ length: 5 }, (_, index) => {
+      const month = index * 3;
+      return {
+        month: month === 0 ? "Now" : `${month} mo`,
+        current: 0,
+        optimized: monthlyIncrease * month,
+      };
+    });
+
+    return {
+      monthlySavingsIncrease: monthlyIncrease,
+      annualSavingsIncrease: toNumber(result.simulation.estimatedTotalSavings),
+      baselineMonthlySpend: toNumber(result.simulation.baselineMonthlySpend),
+      currentSavings: pulse.currentSavings,
+      projection: points,
+      disclaimer: result.simulation.disclaimer,
+    };
   }
 
-  static async getBills() {
-    try {
-      const res = await this.request<any[]>("/recurring-payments");
-      if (Array.isArray(res) && res.length > 0) return res;
-    } catch {
-      try {
-        const res2 = await this.request<any[]>("/bills");
-        if (Array.isArray(res2) && res2.length > 0) return res2;
-      } catch {
-        // Fallback
-      }
-    }
+  static async getBills(): Promise<RecurringBillItem[]> {
+    const result = await request<{ recurringPayments: Array<{
+      id: string;
+      merchant: string;
+      expectedAmount: string | number;
+      currency: string;
+      frequency: string;
+      status: string;
+      nextDueAt: string | null;
+      confidence: string;
+    }> }>("/recurring-payments");
 
-    return [
-      { id: "1", name: "Apartment Rent", amount: 15000, dueDate: "2024-10-01", frequency: "MONTHLY", status: "PENDING" },
-      { id: "2", name: "Electricity Bill (BESCOM)", amount: 2180, dueDate: "2024-10-02", frequency: "MONTHLY", status: "PENDING" },
-      { id: "3", name: "Netflix Subscription", amount: 649, dueDate: "2024-10-03", frequency: "MONTHLY", status: "PENDING" },
-      { id: "4", name: "Airtel Xstream Fiber", amount: 999, dueDate: "2024-10-05", frequency: "MONTHLY", status: "PENDING" },
-    ];
+    return result.recurringPayments.map((payment) => ({
+      id: payment.id,
+      name: payment.merchant,
+      amount: toNumber(payment.expectedAmount),
+      currency: payment.currency,
+      frequency: payment.frequency,
+      status: payment.status,
+      dueDate: payment.nextDueAt,
+      confidence: payment.confidence,
+    }));
   }
 
-  static async getPurchases() {
-    try {
-      const res = await this.request<any[]>("/purchases");
-      if (Array.isArray(res) && res.length > 0) return res;
-    } catch {
-      // Fallback
-    }
+  static async getReminders(): Promise<ReminderItem[]> {
+    const result = await request<{ reminders: Array<{
+      id: string;
+      title: string;
+      amount: string | number | null;
+      currency: string | null;
+      dueAt: string;
+      status: ReminderItem["status"];
+    }> }>("/reminders?upcoming=true");
 
-    return [
-      {
-        id: "p1",
-        orderNumber: "ORD-PP-83921",
-        merchant: "Amazon India",
-        totalAmount: 2499,
-        status: "COMPLETED",
-        deliveryStatus: "DELIVERED",
-        purchaseDate: "2024-09-09",
-        items: [{ name: "Sony Wireless Ergonomic Headphones", quantity: 1, unitPrice: 2499, imageUrl: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200" }],
-      },
-    ];
+    return result.reminders.map((reminder) => ({
+      ...reminder,
+      amount: reminder.amount == null ? null : toNumber(reminder.amount),
+    }));
   }
 
-  static async askAssistant(query: string, conversationId?: string, history?: ChatHistoryTurn[]) {
-    // 1. Check if user configured client-side LLM credentials (Groq / Gemini / OpenAI)
-    try {
-      const customProvider = localStorage.getItem("finsight_llm_provider") as any;
-      const customKey = localStorage.getItem("finsight_llm_key");
-      const customModel = localStorage.getItem("finsight_llm_model") || undefined;
-
-      if (customKey && customKey.trim().length > 5) {
-        return await FinancialAgentEngine.processQuery(query, DEFAULT_FINANCIAL_STATE, {
-          provider: customProvider || "groq",
-          apiKey: customKey.trim(),
-          model: customModel,
-        }, history);
-      }
-    } catch (e) {
-      // Continue to backend / local engine
-    }
-
-    // 2. Attempt backend /ai/chat
-    try {
-      const res = await this.request<any>("/ai/chat", {
-        method: "POST",
-        body: JSON.stringify({ message: query, query, conversationId, history }),
-      });
-
-      const text = res.message || res.text || res.response || res.data?.message || res.data?.response;
-      if (text && !text.includes("AI provider is not configured") && !text.includes("having trouble reaching")) {
-        return {
-          conversationId: res.conversationId || res.data?.conversationId || "conv-1",
-          agentName: res.agentName || res.data?.agentName || "FinSight Multi-Agent Copilot",
-          text,
-          chartData: res.chartData || res.data?.chartData,
-          recommendations: res.recommendations || res.data?.recommendations || ["Check weekend spending", "Review upcoming bills"],
-          toolAudit: res.toolAudit || res.data?.toolAudit || [{ toolName: "database_ledger_verified", status: "verified" }],
-        };
-      }
-    } catch {
-      // Backend not running or token expired
-    }
-
-    // 3. High-precision Built-in Financial Intelligence Engine
-    return await FinancialAgentEngine.processQuery(query, DEFAULT_FINANCIAL_STATE, undefined, history);
+  static async createReminder(payload: {
+    title: string;
+    amount?: number;
+    currency?: string;
+    dueAt: string;
+  }): Promise<ReminderItem> {
+    const result = await request<{ reminder: Omit<ReminderItem, "amount"> & { amount: string | number | null } }>("/reminders", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return {
+      ...result.reminder,
+      amount: result.reminder.amount == null ? null : toNumber(result.reminder.amount),
+    };
   }
 
-  static async createPayPalOrder(data: { amount: number; merchantName?: string; description?: string }) {
-    try {
-      return await this.request<{ orderId: string; status: string }>("/paypal/orders", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    } catch {
-      return this.request<{ orderId: string; status: string }>("/paypal/create-order", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-    }
+  static async updateReminder(
+    id: string,
+    payload: { status: ReminderItem["status"] }
+  ): Promise<ReminderItem> {
+    const result = await request<{ reminder: Omit<ReminderItem, "amount"> & { amount: string | number | null } }>(
+      `/reminders/${encodeURIComponent(id)}`,
+      { method: "PATCH", body: JSON.stringify(payload) }
+    );
+    return {
+      ...result.reminder,
+      amount: result.reminder.amount == null ? null : toNumber(result.reminder.amount),
+    };
   }
 
-  static async capturePayPalOrder(orderId: string, merchantName?: string, category = "Shopping") {
-    try {
-      return await this.request<{ success: boolean; orderId: string; captureId: string; transaction: any }>(`/paypal/orders/${orderId}/capture`, {
-        method: "POST",
-        body: JSON.stringify({ merchantName, category }),
-      });
-    } catch {
-      return this.request<{ success: boolean; orderId: string; captureId: string; transaction: any }>("/paypal/capture-order", {
-        method: "POST",
-        body: JSON.stringify({ orderId, merchantName, category }),
-      });
-    }
+  static async detectRecurringPayments() {
+    return request<{ detected: unknown[] }>("/recurring-payments/detect", { method: "POST" });
+  }
+
+  static async getPurchases(): Promise<TransactionItem[]> {
+    return this.getTransactions({ source: "PAYPAL_CHECKOUT" });
+  }
+
+  static async askAssistant(query: string, conversationId?: string) {
+    const result = await request<{
+      conversationId: string;
+      answer: string;
+      evidence?: Array<{ tool: string }>;
+    }>("/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({ message: query, conversationId }),
+    });
+
+    return {
+      conversationId: result.conversationId,
+      text: result.answer,
+      agentName: "FinSight AI",
+      toolAudit: result.evidence?.map((evidence) => ({ toolName: evidence.tool })) || [],
+    };
+  }
+
+  static async createPayPalOrder(data: {
+    amount: number;
+    currency: string;
+    merchantName?: string;
+    description?: string;
+  }) {
+    const result = await request<{ paypalOrderId: string; status: string }>("/paypal/orders", {
+      method: "POST",
+      body: JSON.stringify({
+        amount: data.amount,
+        currency: data.currency,
+        description: [data.merchantName, data.description].filter(Boolean).join(" - "),
+      }),
+    });
+    return { orderId: result.paypalOrderId, status: result.status };
+  }
+
+  static async capturePayPalOrder(orderId: string) {
+    return request<{ status: string; transaction: TransactionRecord }>(
+      `/paypal/orders/${encodeURIComponent(orderId)}/capture`,
+      { method: "POST", body: JSON.stringify({}) }
+    );
+  }
+
+  static async getPayPalStatus() {
+    const result = await request<{ status: {
+      configured: boolean;
+      environment: string;
+      currency: string;
+      clientId: string | null;
+      message?: string;
+    } }>("/paypal/status");
+    return result.status;
   }
 }

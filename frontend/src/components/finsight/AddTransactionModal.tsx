@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X, Check } from "lucide-react";
-import { FinSightAPI } from "../../services/finsightApi";
+import { CategoryItem, FinSightAPI } from "../../services/finsightApi";
 import { toast } from "sonner";
 
 interface Props {
@@ -12,17 +12,26 @@ interface Props {
 export const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSuccess }) => {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
-  const [type, setType] = useState("Expense");
-  const [category, setCategory] = useState("Food & dining");
-  const [date, setDate] = useState("2024-09-16");
-  const [method, setMethod] = useState("HDFC Bank");
+  const [type, setType] = useState<"EXPENSE" | "INCOME">("EXPENSE");
+  const [categoryId, setCategoryId] = useState("");
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    FinSightAPI.getCategories()
+      .then(setCategories)
+      .catch((error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "Could not load categories.");
+      });
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleSave = async () => {
     const numeric = parseFloat(amount);
-    if (!title.trim() || !numeric) {
+    if (!title.trim() || !Number.isFinite(numeric) || numeric <= 0) {
       toast.error("Please add a title and valid amount");
       return;
     }
@@ -32,10 +41,9 @@ export const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSucces
       await FinSightAPI.addTransaction({
         merchant: title,
         amount: numeric,
-        type: type.toUpperCase(),
-        category,
-        paymentMethod: method,
-        date,
+        direction: type,
+        categoryId: categoryId || null,
+        transactionDate: date,
       });
 
       toast.success("Transaction added to ledger and budget updated");
@@ -95,11 +103,11 @@ export const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSucces
               </label>
               <select
                 value={type}
-                onChange={(e) => setType(e.target.value)}
+                onChange={(e) => setType(e.target.value as "EXPENSE" | "INCOME")}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-[#0e1715] dark:border-[#21352f] dark:text-white"
               >
-                <option>Expense</option>
-                <option>Income</option>
+                <option value="EXPENSE">Expense</option>
+                <option value="INCOME">Income</option>
               </select>
             </div>
           </div>
@@ -110,17 +118,14 @@ export const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSucces
                 Category
               </label>
               <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-[#0e1715] dark:border-[#21352f] dark:text-white"
               >
-                <option>Food & dining</option>
-                <option>Shopping</option>
-                <option>Transport</option>
-                <option>Utilities</option>
-                <option>Rent & home</option>
-                <option>Entertainment</option>
-                <option>Education</option>
+                <option value="">Auto-categorize</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
               </select>
             </div>
 
@@ -137,21 +142,6 @@ export const AddTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSucces
             </div>
           </div>
 
-          <div>
-            <label className="block font-medium text-slate-600 dark:text-slate-300 mb-1">
-              Payment Method
-            </label>
-            <select
-              value={method}
-              onChange={(e) => setMethod(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-[#0e1715] dark:border-[#21352f] dark:text-white"
-            >
-              <option>HDFC Bank</option>
-              <option>PayPal</option>
-              <option>UPI</option>
-              <option>ICICI Card</option>
-            </select>
-          </div>
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-[#21352f]">

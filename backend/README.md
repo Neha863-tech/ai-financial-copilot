@@ -14,7 +14,7 @@ Node.js, Express, PostgreSQL, and Prisma REST API backend for the **AI Financial
 - **Validation:** Zod schemas
 - **Security:** Helmet, CORS, rate limiting, parameterized queries
 - **Testing:** Vitest + Supertest
-- **Integrations:** PayPal Orders v2 / Webhooks, Google Gemini (via function/tool calling)
+- **Integrations:** PayPal Orders v2 / Webhooks, Google Gemini and Groq (via function/tool calling)
 
 ---
 
@@ -31,7 +31,7 @@ backend/
 │   ├── controllers/           # HTTP handlers
 │   ├── db/                    # Shared Prisma client
 │   ├── integrations/
-│   │   ├── ai/                # Gemini provider, tool registry, prompts
+│   │   ├── ai/                # Gemini/Groq providers, tool registry, prompts
 │   │   └── paypal/            # PayPal client, orders, reporting, webhooks
 │   ├── middlewares/           # auth, validate, error, notFound, rateLimit, requestId
 │   ├── routes/                # Express feature routes & index router
@@ -42,58 +42,16 @@ backend/
 │   ├── server.js              # Server lifecycle & graceful shutdown
 │   └── index.js               # Entry point
 ├── tests/                     # Unit & integration tests
-├── .env.example
 ├── package.json
 └── vitest.config.js
 ```
 
 ---
-
-## 3. Environment Variables
-
-Create `.env` inside `backend/`:
-
-```env
-# Application
-NODE_ENV=development
-PORT=5000
-APP_NAME=AI Financial Copilot
-FRONTEND_URL=http://localhost:5173
-API_BASE_URL=http://localhost:5000
-
-# PostgreSQL / Prisma
-DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_financial_copilot?schema=public"
-
-# Authentication
-JWT_SECRET=your_long_random_jwt_secret_here
-JWT_EXPIRES_IN=1d
-COOKIE_NAME=afc_session
-
-# AI Provider
-AI_PROVIDER=gemini
-AI_API_KEY=your_gemini_api_key_here
-AI_MODEL=gemini-2.0-flash
-AI_TEMPERATURE=0.2
-AI_MAX_TOOL_ROUNDS=4
-
-# PayPal Sandbox
-PAYPAL_ENV=sandbox
-PAYPAL_CLIENT_ID=your_paypal_sandbox_client_id
-PAYPAL_CLIENT_SECRET=your_paypal_sandbox_client_secret
-PAYPAL_WEBHOOK_ID=your_paypal_webhook_id
-PAYPAL_CURRENCY=USD
-
-# Upload limits
-MAX_CSV_FILE_SIZE_MB=5
-```
-
----
-
 ## 4. Setup & Running
 
 ### Prerequisites
 - Node.js >= 18 LTS
-- PostgreSQL running locally on port 5432
+- PostgreSQL running locally and a development database created
 
 ### Commands
 
@@ -101,19 +59,29 @@ MAX_CSV_FILE_SIZE_MB=5
 # 1. Install dependencies
 npm install
 
-# 2. Run Prisma migrations
-npx prisma migrate dev --name init
+# 2. Create backend/.env with your local settings.
+# Required: DATABASE_URL, JWT_SECRET (at least 10 characters),
+# AI_PROVIDER (gemini or groq), and AI_API_KEY.
+# Optional: PayPal Sandbox credentials for checkout.
 
-# 3. Seed initial categories and demo account
+# 3. Set DATABASE_URL to your PostgreSQL connection string:
+# postgresql://<USER>:<PASSWORD>@localhost:<PORT>/<DATABASE>?schema=public
+# Use the actual host, port, database, username, and password for your setup.
+
+# 4. Generate Prisma Client and apply migrations
+npm run db:generate
+npm run db:migrate
+
+# 5. Seed initial categories and demo account
 npm run db:seed
 
-# 4. Run tests
+# 6. Run tests
 npm test
 
-# 5. Start development server
+# 7. Start development server
 npm run dev
 
-# 6. Start production server
+# 8. Start production server
 npm start
 ```
 
@@ -168,7 +136,7 @@ All feature endpoints are prefixed with `/api/v1`.
 - `POST /savings` — Calculate deterministic what-if savings projections from historical data
 
 ### AI Financial Assistant (`/api/v1/ai`)
-- `POST /chat` — Conversational assistant using Gemini with controlled tool calling
+- `POST /chat` — Authenticated conversational assistant using the configured Gemini or Groq provider with controlled tool calling
 - `GET /conversations` — List user chat conversations
 - `GET /conversations/:id` — Get conversation history
 - `DELETE /conversations/:id` — Delete conversation
@@ -202,4 +170,3 @@ All feature endpoints are prefixed with `/api/v1`.
 
 - **Email:** `demo@example.com`
 - **Password:** `DemoPassword123!`
-
