@@ -1,4 +1,4 @@
-# FinSight AI 💳🧠
+# AI Financial Copilot 💳🧠
 > **Your Money. Your Insights. Your Control.**  
 > *PayPal AI Hackathon | Full-Stack AI-Powered Personal Finance Platform*
 
@@ -6,9 +6,9 @@
 
 ## 📌 Executive Summary
 
-**FinSight AI** is a production-quality, intelligent personal finance ecosystem combining payment processing, transaction tracking, financial analytics, budgeting, shopping intelligence, and a 6-agent AI mesh.
+**AI Financial Copilot** is a production-quality, intelligent personal finance ecosystem combining payment processing, transaction tracking, financial analytics, budgeting, shopping intelligence, and a 6-agent AI mesh.
 
-Instead of simply displaying static expense records, FinSight AI understands spending patterns, detects unusual charges, predicts future cash flows, recommends practical adjustments, and integrates with the **PayPal REST API & Developer Sandbox** in an automated **Payment-to-Insight pipeline**.
+Instead of simply displaying static expense records, AI Financial Copilot understands spending patterns, detects unusual charges, predicts future cash flows, recommends practical adjustments, and integrates with the **PayPal REST API & Developer Sandbox** in an automated **Payment-to-Insight pipeline**.
 
 ---
 
@@ -40,10 +40,10 @@ Instead of simply displaying static expense records, FinSight AI understands spe
 
 ## 🤖 The 6-Agent AI Financial Mesh
 
-```
-                     [ FinSight Central Orchestrator ]
-                     /       |        |       |      \
-                    /        |        |       |       \
+```text
+                    [ AI Financial Copilot Central Orchestrator ]
+                     /       |        |       |       \
+                    /        |        |       |        \
                [Expense] [Analytics] [Budget] [Bills] [Shopping]
                                       |
                                   [Forecast]
@@ -61,19 +61,22 @@ Instead of simply displaying static expense records, FinSight AI understands spe
 ## 🚀 Quickstart & Setup Guide
 
 ### 1. Prerequisites
+
 - **Node.js** v18+ (tested on Node v20/v22)
 - **Python** 3.11+ (for the dedicated AI microservice)
 - **PostgreSQL** running on port 5432 (local or hosted e.g. Neon/Supabase)
 
 ### 2. One-Command Startup (Runs Frontend, Backend & AI Microservice)
+
 ```bash
 # In the root repository directory:
 npm run setup:all   # Installs dependencies for all 3 layers
 npm run setup:db    # Pushes Prisma schema and seeds demo data
-npm start           # Boots Frontend (5173), Backend (5000), and FastAPI (8001)
+npm start            # Boots Frontend (5173), Backend (5000), and FastAPI (8001)
 ```
 
 ### 3. Frontend-Only Setup
+
 ```bash
 cd frontend
 npm install
@@ -87,7 +90,7 @@ npm run dev         # Launches Vite dev server on http://localhost:5173
 1. **Explore Dashboard:** Open `http://localhost:5173` to see Arjun's live financial pulse (Income ₹88,000, Expenses, Savings rate, and Category donut chart).
 2. **Simulate PayPal Payment:** Click **"Test PayPal Sandbox"** in the topbar. Enter an item (e.g. *"Bose QuietComfort 45 Headphones"*, ₹18,999 under *Shopping*).
 3. **Automatic Synchronization:**
-   - PayPal order created & captured via `/api/paypal`.
+   - PayPal order created and captured via `/api/paypal`.
    - Transaction automatically logged in the PostgreSQL ledger.
    - Budget for Shopping dynamically debited.
    - AI Insight dispatched.
