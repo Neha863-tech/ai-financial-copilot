@@ -15,7 +15,7 @@ const envSchema = z.object({
   COOKIE_NAME: z.string().default('afc_session'),
   AI_PROVIDER: z.string().default('gemini'),
   AI_API_KEY: z.string().default('replace_me'),
-  AI_MODEL: z.string().optional(),
+  AI_MODEL: z.string().default('gemini-2.0-flash'),
   AI_TEMPERATURE: z.coerce.number().default(0.2),
   AI_MAX_TOOL_ROUNDS: z.coerce.number().default(4),
   PAYPAL_ENV: z.enum(['sandbox', 'live']).default('sandbox'),
@@ -24,6 +24,8 @@ const envSchema = z.object({
   PAYPAL_WEBHOOK_ID: z.string().default('replace_with_sandbox_webhook_id'),
   PAYPAL_CURRENCY: z.string().default('USD'),
   MAX_CSV_FILE_SIZE_MB: z.coerce.number().default(5),
+  AI_SERVICE_URL: z.string().default('http://localhost:8001'),
+  AI_SERVICE_API_KEY: z.string().default('finsight_internal_ai_secret_key_2026'),
 });
 
 const parsed = envSchema.safeParse(process.env);

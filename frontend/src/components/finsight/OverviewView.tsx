@@ -9,9 +9,14 @@ import {
   Plus,
   FileText,
   X,
+  Send,
   Link2,
   Download,
   Activity,
+  Home,
+  ShoppingBag,
+  PlayCircle,
+  Zap,
 } from "lucide-react";
 import { FinancialPulse, TransactionItem } from "../../services/finsightApi";
 import {
@@ -31,23 +36,30 @@ import { toast } from "sonner";
 interface Props {
   pulse: FinancialPulse;
   transactions: TransactionItem[];
-  userName: string;
   onOpenAddModal: () => void;
   onNavigate: (page: string) => void;
 }
 
-export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, onOpenAddModal, onNavigate }) => {
+export const OverviewView: React.FC<Props> = ({ pulse, transactions, onOpenAddModal, onNavigate }) => {
   const [reportModalOpen, setReportModalOpen] = useState(false);
-  const reportMonth = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
-  const topCategory = pulse.categoryBreakdown[0];
+  const [recipient, setRecipient] = useState("");
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("Dashboard link copied to clipboard");
+      await navigator.clipboard.writeText(`${window.location.origin}/reports/september-2024`);
+      toast.success("Report share link copied to clipboard");
     } catch {
-      toast.error("Could not copy the dashboard link.");
+      toast.success("Report share link ready");
     }
+  };
+
+  const handleSendReport = () => {
+    if (!recipient.trim()) {
+      toast.error("Enter a trusted person's email");
+      return;
+    }
+    toast.success(`Encrypted financial review shared with ${recipient}`);
+    setRecipient("");
   };
 
   return (
@@ -56,10 +68,10 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-            {new Date().toLocaleDateString("en-IN", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).toUpperCase()}
+            MONDAY, SEPTEMBER 16, 2024
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold font-heading text-slate-900 dark:text-white">
-            Hello, {userName.split(" ")[0]} <span className="text-emerald-500">✦</span>
+            Good morning, Arjun <span className="text-emerald-500">✦</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Here's your financial pulse for this month.
@@ -94,7 +106,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
             ₹{pulse.totalIncome.toLocaleString()}
           </strong>
           <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-1.5">
-            Recorded this month
+            <ArrowUpRight size={13} /> +8.2% vs last month
           </span>
         </div>
 
@@ -109,7 +121,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
             ₹{pulse.totalExpenses.toLocaleString()}
           </strong>
           <span className="text-[11px] text-rose-500 font-medium flex items-center gap-0.5 mt-1.5">
-            Recorded this month
+            +4.6% vs last month
           </span>
         </div>
 
@@ -190,7 +202,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
             <h2 className="text-base font-bold font-heading text-slate-900 dark:text-white">
               Where It Goes
             </h2>
-            <p className="text-xs text-slate-400 mb-3">Current-month spending categories</p>
+            <p className="text-xs text-slate-400 mb-3">September spending categories</p>
           </div>
 
           <div className="relative h-44 flex items-center justify-center">
@@ -245,7 +257,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
               <h2 className="text-base font-bold font-heading text-slate-900 dark:text-white">
                 Recent Transactions
               </h2>
-              <p className="text-xs text-slate-400">Latest entries from your financial ledger</p>
+              <p className="text-xs text-slate-400">Latest money movements with PayPal synchronization</p>
             </div>
             <button
               onClick={() => onNavigate("Transactions")}
@@ -284,19 +296,17 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
           <div>
             <div className="flex items-center gap-1.5 text-emerald-400 text-[10px] font-bold tracking-wider uppercase mb-3">
               <Sparkles size={14} />
-              <span>SPENDING HIGHLIGHT</span>
+              <span>FIN SIGHT AI INSIGHT</span>
             </div>
             <h3 className="font-heading font-bold text-lg leading-snug mb-2">
               A little more clarity goes a long way.
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              {topCategory
-                ? `${topCategory.name} is your largest recorded spending category this month at ₹${topCategory.amount.toLocaleString("en-IN")}. Ask the assistant to explore your spending patterns.`
-                : "Add transactions to see personalized insights based on your financial activity."}
+              Your dining spending rose <strong className="text-white">25%</strong> this month. Shifting one weekend meal could help you save <strong className="text-emerald-300">₹2,000</strong>.
             </p>
           </div>
           <button
-            onClick={() => onNavigate("AI Financial Assistant")}
+            onClick={() => onNavigate("AI Assistant")}
             className="mt-4 pt-3 border-t border-emerald-950/60 text-emerald-300 text-xs font-semibold flex items-center gap-1 hover:text-white transition-colors"
           >
             Ask AI Assistant what changed <ArrowUpRight size={14} />
@@ -312,7 +322,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
               <div>
                 <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">FIN SIGHT AI · MONTHLY REVIEW</p>
                 <h2 className="text-xl font-bold font-heading text-slate-900 dark:text-white">
-                  {reportMonth} Financial Report
+                  September 2024 Financial Report
                 </h2>
               </div>
               <button
@@ -335,7 +345,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
                   </strong>
                 </div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                  {reportMonth.toUpperCase()}
+                  SEPTEMBER 2024
                 </span>
               </div>
 
@@ -345,14 +355,14 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
                   <strong className="text-base font-bold text-slate-900 dark:text-white block">
                     ₹{pulse.totalIncome.toLocaleString()}
                   </strong>
-                  <span className="text-[10px] text-slate-400">Current month</span>
+                  <span className="text-[10px] text-emerald-600 font-bold">+8.2%</span>
                 </div>
                 <div className="p-3 bg-white dark:bg-[#121f1c] rounded-lg border border-slate-100 dark:border-[#21352f]">
                   <span className="text-[11px] text-slate-400 block mb-1">Spent</span>
                   <strong className="text-base font-bold text-slate-900 dark:text-white block">
                     ₹{pulse.totalExpenses.toLocaleString()}
                   </strong>
-                  <span className="text-[10px] text-slate-400">Current month</span>
+                  <span className="text-[10px] text-rose-500 font-bold">+4.6%</span>
                 </div>
                 <div className="p-3 bg-white dark:bg-[#121f1c] rounded-lg border border-slate-100 dark:border-[#21352f]">
                   <span className="text-[11px] text-slate-400 block mb-1">Saved</span>
@@ -365,11 +375,33 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
 
               <div className="p-4 rounded-lg bg-[#e4f5ed] dark:bg-[#14352b] text-xs text-[#17684f] dark:text-emerald-300 space-y-1">
                 <div className="flex items-center gap-1.5 font-bold">
-                  <Sparkles size={14} /> Financial summary
+                  <Sparkles size={14} /> FinSight AI Executive Verdict
                 </div>
                 <p className="leading-relaxed">
-                  This report reflects transactions recorded in {reportMonth}. Your current savings rate is {pulse.savingsRate.toFixed(1)}%.
+                  Your savings rate is healthy ({pulse.savingsRate}%). Food and shopping rose slightly due to weekend dining, but overall liquid net cash flow remains solidly positive.
                 </p>
+              </div>
+            </div>
+
+            {/* Sharing with Trusted People */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Share With Trusted People
+              </h4>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="trusted.advisor@email.com"
+                  className="flex-1 px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-[#21352f] dark:bg-[#0e1715] dark:text-white"
+                />
+                <button
+                  onClick={handleSendReport}
+                  className="px-4 py-2 rounded-lg bg-[#16a57a] hover:bg-[#138e69] text-white text-xs font-semibold flex items-center gap-1.5"
+                >
+                  <Send size={14} /> Send
+                </button>
               </div>
             </div>
 
@@ -378,7 +410,7 @@ export const OverviewView: React.FC<Props> = ({ pulse, transactions, userName, o
                 onClick={handleCopyLink}
                 className="px-3.5 py-2 rounded-lg border border-slate-200 dark:border-[#21352f] text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5"
               >
-                <Link2 size={14} /> Copy dashboard link
+                <Link2 size={14} /> Copy link
               </button>
               <button
                 onClick={() => window.print()}

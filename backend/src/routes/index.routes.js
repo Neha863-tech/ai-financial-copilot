@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import userRoutes from './user.routes.js';
+import profileRoutes from './profile.routes.js';
+import sessionRoutes from './session.routes.js';
+import activityRoutes from './activity.routes.js';
 import transactionRoutes from './transaction.routes.js';
 import categoryRoutes from './category.routes.js';
 import budgetRoutes from './budget.routes.js';
@@ -12,11 +15,20 @@ import reminderRoutes from './reminder.routes.js';
 import paypalRoutes from './paypal.routes.js';
 import simulatorRoutes from './simulator.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
+import reportsRoutes from './reports.routes.js';
+import calendarRoutes from './calendar.routes.js';
+import goalsRoutes from './goals.routes.js';
+import notificationsRoutes from './notifications.routes.js';
+import shoppingRoutes from './shopping.routes.js';
+import internalRoutes from './internal.routes.js';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
+router.use('/profile', profileRoutes);
+router.use('/sessions', sessionRoutes);
+router.use('/activity', activityRoutes);
 router.use('/transactions', transactionRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/budgets', budgetRoutes);
@@ -28,6 +40,11 @@ router.use('/recurring-payments', recurringRoutes);
 router.use('/reminders', reminderRoutes);
 router.use('/paypal', paypalRoutes);
 router.use('/simulator', simulatorRoutes);
+router.use('/reports', reportsRoutes);
+router.use('/calendar', calendarRoutes);
+router.use('/goals', goalsRoutes);
+router.use('/notifications', notificationsRoutes);
+router.use('/shopping', shoppingRoutes);
+router.use('/internal', internalRoutes);
 
 export default router;
-

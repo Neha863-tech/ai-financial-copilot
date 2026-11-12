@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <rect width="800" height="500" rx="16" fill="#0C0E14"/>
+  <rect x="20" y="20" width="760" height="460" rx="12" stroke="#1F2432" stroke-width="2"/>
+  <circle cx="60" cy="50" r="6" fill="#EF4444"/>
+  <circle cx="80" cy="50" r="6" fill="#F59E0B"/>
+  <circle cx="100" cy="50" r="6" fill="#10B981"/>
+  <text x="130" y="55" fill="#64748B" font-family="monospace" font-size="14">corrective_rag_langgraph.py</text>
+  
+  <!-- Cyclical Graph Visualization -->
+  <rect x="70" y="160" width="160" height="70" rx="8" fill="#151A25" stroke="#38BDF8" stroke-width="1.5"/>
+  <text x="95" y="195" fill="#F8FAFC" font-family="sans-serif" font-weight="bold" font-size="13">1. Retrieve Chunks</text>
+  <text x="95" y="215" fill="#38BDF8" font-family="monospace" font-size="11">ChromaDB Vector</text>
+
+  <path d="M230 195 L290 195" stroke="#38BDF8" stroke-width="2"/>
+
+  <rect x="290" y="160" width="170" height="70" rx="8" fill="#151A25" stroke="#6366F1" stroke-width="1.5"/>
+  <text x="310" y="195" fill="#F8FAFC" font-family="sans-serif" font-weight="bold" font-size="13">2. Grade Relevance</text>
+  <text x="310" y="215" fill="#818CF8" font-family="monospace" font-size="11">Ollama / Llama-3 8B</text>
+
+  <!-- Cycle: Rewriter -->
+  <path d="M375 230 L375 290 L200 290 L200 230" stroke="#F59E0B" stroke-width="2" stroke-dasharray="4 4"/>
+  <rect x="230" y="275" width="120" height="26" rx="4" fill="#292014" stroke="#F59E0B"/>
+  <text x="240" y="292" fill="#FBBF24" font-family="monospace" font-size="11">Rewrite Query</text>
+
+  <path d="M460 195 L530 195" stroke="#10B981" stroke-width="2"/>
+
+  <rect x="530" y="160" width="180" height="70" rx="8" fill="#151A25" stroke="#10B981" stroke-width="1.5"/>
+  <text x="555" y="195" fill="#F8FAFC" font-family="sans-serif" font-weight="bold" font-size="13">3. Generate Answer</text>
+  <text x="555" y="215" fill="#10B981" font-family="monospace" font-size="11">Grounded Synthesis</text>
+
+  <!-- Metrics bottom bar -->
+  <rect x="70" y="360" width="640" height="80" rx="8" fill="#11141D" stroke="#252A38" stroke-width="1"/>
+  <text x="95" y="395" fill="#64748B" font-family="monospace" font-size="12">HALLUCINATION MITIGATION: Self-RAG Grader Loop</text>
+  <text x="95" y="420" fill="#10B981" font-family="monospace" font-size="12">✓ Zero external API keys needed • Runs on local Ollama runtime</text>
+</svg>

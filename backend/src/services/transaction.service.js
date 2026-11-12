@@ -1,6 +1,7 @@
 import prisma from '../db/prisma.js';
 import { ApiError } from '../utils/ApiError.js';
 import { categorizationService } from './categorization.service.js';
+import { activityLogger } from './activityLogger.service.js';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export const transactionService = {
@@ -53,6 +54,17 @@ export const transactionService = {
       },
       include: { category: true },
     });
+
+    activityLogger.logActivity({
+      userId,
+      category: 'FINANCIAL',
+      eventType: data.direction === 'INCOME' ? 'INCOME_ADDED' : 'EXPENSE_ADDED',
+      title: `${data.direction === 'INCOME' ? 'Income' : 'Expense'} Added: ${transaction.currency} ${transaction.amount}`,
+      description: `${transaction.merchant || transaction.description || 'Transaction'} recorded.`,
+      status: 'SUCCESS',
+      entityType: 'Transaction',
+      entityId: transaction.id,
+    }).catch(() => {});
 
     return transaction;
   },
@@ -151,7 +163,7 @@ export const transactionService = {
     if (data.direction !== undefined) updateData.direction = data.direction;
     if (data.transactionDate !== undefined) updateData.transactionDate = new Date(data.transactionDate);
     if (data.status !== undefined) updateData.status = data.status;
-    
+
     if (data.categoryId !== undefined) {
       if (data.categoryId) {
         const category = await prisma.category.findFirst({
@@ -174,6 +186,17 @@ export const transactionService = {
       include: { category: true },
     });
 
+    activityLogger.logActivity({
+      userId,
+      category: 'FINANCIAL',
+      eventType: data.direction === 'INCOME' ? 'INCOME_ADDED' : 'EXPENSE_ADDED',
+      title: `${data.direction === 'INCOME' ? 'Income' : 'Expense'} Added: ${transaction.currency} ${transaction.amount}`,
+      description: `${transaction.merchant || transaction.description || 'Transaction'} recorded.`,
+      status: 'SUCCESS',
+      entityType: 'Transaction',
+      entityId: transaction.id,
+    }).catch(() => {});
+
     return transaction;
   },
 
@@ -190,6 +213,17 @@ export const transactionService = {
       where: { id },
       data: { deletedAt: new Date() },
     });
+
+    activityLogger.logActivity({
+      userId,
+      category: 'FINANCIAL',
+      eventType: 'TRANSACTION_DELETED',
+      title: 'Transaction Removed',
+      description: `Removed transaction ${existing.merchant || existing.description || id}.`,
+      status: 'SUCCESS',
+      entityType: 'Transaction',
+      entityId: id,
+    }).catch(() => {});
 
     return { message: 'Transaction deleted successfully' };
   },

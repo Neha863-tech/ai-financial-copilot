@@ -2,6 +2,7 @@ import { paypalClient } from './paypalClient.js';
 import { paypalConfig } from '../../config/paypal.js';
 import prisma from '../../db/prisma.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { activityLogger } from '../../services/activityLogger.service.js';
 import { Decimal } from '@prisma/client/runtime/library';
 
 export const paypalOrdersService = {
@@ -112,6 +113,18 @@ export const paypalOrdersService = {
 
       return { paymentOrder: updatedOrder, transaction };
     });
+
+    activityLogger.logActivity({
+      userId,
+      category: 'PAYMENTS',
+      eventType: 'PAYPAL_ORDER_CAPTURED',
+      title: `PayPal Payment Captured: ${capturedCurrency} ${capturedAmount}`,
+      description: `Payment for Order ${orderId} was captured. Status: ${paymentOrderStatus}.`,
+      status: paymentOrderStatus === 'COMPLETED' ? 'SUCCESS' : 'INFO',
+      entityType: 'PaymentOrder',
+      entityId: paymentOrder.id,
+      metadata: { paypalOrderId: orderId, captureId },
+    }).catch(() => {});
 
     return {
       paypalOrderId: orderId,

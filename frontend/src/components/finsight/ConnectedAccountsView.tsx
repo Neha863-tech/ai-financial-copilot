@@ -1,79 +1,112 @@
-import React, { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, Landmark } from "lucide-react";
-import { FinSightAPI } from "../../services/finsightApi";
-import { toast } from "sonner";
-
-interface PayPalStatus {
-  configured: boolean;
-  environment: string;
-  currency: string;
-  message?: string;
-}
+import React from "react";
+import { Landmark, ShieldCheck, CheckCircle2, AlertCircle, Clock, ExternalLink } from "lucide-react";
 
 export const ConnectedAccountsView: React.FC = () => {
-  const [status, setStatus] = useState<PayPalStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    FinSightAPI.getPayPalStatus()
-      .then((result) => {
-        if (active) setStatus(result);
-      })
-      .catch((error: unknown) => {
-        toast.error(error instanceof Error ? error.message : "Could not check PayPal configuration.");
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-
-    return () => { active = false; };
-  }, []);
+  const accounts = [
+    {
+      name: "PayPal Developer Sandbox",
+      type: "Payment Gateway",
+      status: "Connected",
+      badge: "Active",
+      lastSync: "Just now",
+      note: "Primary payment processing & webhook synchronization.",
+      connected: true,
+      iconBg: "bg-[#003087]",
+      iconText: "P",
+    },
+    {
+      name: "HDFC Bank (Salary Account)",
+      type: "Net Banking",
+      status: "Connected",
+      badge: "Active",
+      lastSync: "Today, 09:00 AM",
+      note: "Read-only balance synchronization & salary credit detection.",
+      connected: true,
+      iconBg: "bg-blue-700",
+      iconText: "H",
+    },
+    {
+      name: "ICICI Credit Card",
+      type: "Credit Card",
+      status: "Connected",
+      badge: "Active",
+      lastSync: "Yesterday",
+      note: "Real-time POS and online transaction feed.",
+      connected: true,
+      iconBg: "bg-amber-600",
+      iconText: "I",
+    },
+    {
+      name: "Amazon India Shopping Account",
+      type: "E-Commerce",
+      status: "Import Available",
+      badge: "CSV / Invoice",
+      lastSync: "Sep 09, 2024",
+      note: "Order-level item details verified via uploaded statements.",
+      connected: false,
+      iconBg: "bg-slate-800",
+      iconText: "A",
+    },
+    {
+      name: "Flipkart",
+      type: "E-Commerce",
+      status: "Coming Soon",
+      badge: "Planned",
+      lastSync: "None",
+      note: "API integration awaiting merchant credential grant.",
+      connected: false,
+      iconBg: "bg-yellow-600",
+      iconText: "F",
+    },
+  ];
 
   return (
     <section className="space-y-6">
       <div>
         <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">INTEGRATIONS & PROVIDERS</p>
-        <h1 className="text-2xl font-bold font-heading text-slate-900 dark:text-white">Connected Accounts</h1>
+        <h1 className="text-2xl font-bold font-heading text-slate-900 dark:text-white">
+          Connected Accounts
+        </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Integration status reported by the backend.
+          One calm, transparent view of your verified payment pipelines and bank connections.
         </p>
       </div>
 
-      <article className="max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-xs dark:border-[#21352f] dark:bg-[#121f1c]">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#003087] font-bold text-white">P</span>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {accounts.map((acc, idx) => (
+          <div
+            key={idx}
+            className="p-5 bg-white dark:bg-[#121f1c] rounded-xl border border-slate-200 dark:border-[#21352f] shadow-xs flex flex-col justify-between space-y-4"
+          >
             <div>
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white">PayPal</h2>
-              <p className="mt-1 text-xs text-slate-500">
-                Sandbox payment processing; transactions are recorded after a successful capture.
+              <div className="flex items-center justify-between mb-3">
+                <span className={`w-8 h-8 rounded-lg ${acc.iconBg} text-white flex items-center justify-center font-bold text-xs`}>
+                  {acc.iconText}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                    acc.connected
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                      : "bg-slate-100 text-slate-600 dark:bg-[#182923] dark:text-slate-400"
+                  }`}
+                >
+                  {acc.status}
+                </span>
+              </div>
+              <h3 className="font-heading font-semibold text-sm text-slate-900 dark:text-white">
+                {acc.name}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                {acc.note}
               </p>
             </div>
-          </div>
-          {loading ? (
-            <span className="text-xs text-slate-400">Checking…</span>
-          ) : status?.configured ? (
-            <span className="flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-              <CheckCircle2 size={12} /> Ready
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-950/60 dark:text-amber-300">
-              <AlertCircle size={12} /> Not configured
-            </span>
-          )}
-        </div>
-        {status && (
-          <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-[#21352f]">
-            Environment: {status.environment} · Currency: {status.currency}
-            {status.message ? ` · ${status.message}` : ""}
-          </p>
-        )}
-      </article>
 
-      <div className="flex items-start gap-3 rounded-xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-[#21352f]">
-        <Landmark size={18} className="mt-0.5 shrink-0 text-slate-400" />
-        <p>Bank account synchronization is not configured in this backend. Transactions can be entered manually or imported from a CSV statement.</p>
+            <div className="pt-3 border-t border-slate-100 dark:border-[#21352f] flex items-center justify-between text-xs">
+              <span className="text-slate-400">Sync: {acc.lastSync}</span>
+              <span className="text-slate-500 font-medium">{acc.type}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -10,6 +10,10 @@ const router = Router();
 router.use(authenticate);
 
 router.post('/chat', aiLimiter, validate(chatSchema), aiController.chat);
+router.post('/summary', aiController.getSummary);
+router.post('/categorize', aiController.categorize);
+router.post('/forecast', aiController.forecast);
+router.post('/affordability', aiController.affordability);
 router.get('/conversations', aiController.getConversations);
 router.get('/conversations/:id', validate(conversationIdSchema), aiController.getConversation);
 router.delete('/conversations/:id', validate(conversationIdSchema), aiController.deleteConversation);

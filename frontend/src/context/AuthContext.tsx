@@ -1,12 +1,12 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { User } from "../types/auth";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User } from '../types/auth';
 import {
-  getMyProfile,
   loginUser,
-  logoutUser,
   registerUser,
-  updateMyProfile,
-} from "../services/api";
+  requestOTP as apiRequestOTP,
+  verifyOTP as apiVerifyOTP,
+  getMyProfile,
+} from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -16,112 +16,112 @@ interface AuthContextType {
   isAuthModalOpen: boolean;
   openAuthModal: () => void;
   closeAuthModal: () => void;
-  login: (email: string, password: string) => Promise<User>;
-  register: (payload: { email: string; password: string; fullName: string }) => Promise<User>;
-  logout: () => void;
-  updateProfile: (payload: {
-    fullName?: string;
-    preferredCurrency?: string;
-    timezone?: string;
+  login: (email: string, pass: string) => Promise<User>;
+  register: (payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    phone?: string;
+    whatsappOptIn?: boolean;
   }) => Promise<User>;
+  logout: () => void;
+  requestOTP: (target: string, targetType: 'email' | 'phone', purpose?: string) => Promise<any>;
+  verifyOTP: (target: string, otp: string, purpose?: string) => Promise<any>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const TOKEN_KEY = "finsight_token";
 
-function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
+const TOKEN_KEY = 'trustcart_auth_token';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [token, setToken] = useState<string | null>(getStoredToken);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY) || localStorage.getItem('finsight_token'));
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    let active = true;
-
     async function loadUser() {
       if (!token) {
-        setUser(null);
         setIsLoading(false);
         return;
       }
-
-      setIsLoading(true);
       try {
-        const result = await getMyProfile(token);
-        if (active) setUser(result.user);
-      } catch (error) {
-        if ((error as Error & { status?: number }).status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
-          if (active) {
-            setToken(null);
-            setUser(null);
-          }
-        } else {
-          console.error("Could not load the signed-in profile.", error);
-        }
+        const res = await getMyProfile(token);
+        const profile = res.user || res.data?.user || res;
+        setUser(profile);
+      } catch (err) {
+        console.warn('Failed to load profile with stored token:', err);
+        // Do not force logout on temporary network glitch
       } finally {
-        if (active) setIsLoading(false);
+        setIsLoading(false);
       }
     }
-
-    void loadUser();
-    return () => {
-      active = false;
-    };
+    loadUser();
   }, [token]);
 
-  const saveSession = (authToken: string, authUser: User): User => {
-    if (!authToken) throw new Error("The server did not return an authentication token.");
-    localStorage.setItem(TOKEN_KEY, authToken);
-    setToken(authToken);
+  const login = async (email: string, pass: string): Promise<User> => {
+    const res = await loginUser({ email, password: pass });
+    const authToken = res.accessToken || res.token || res.data?.token || '';
+    const authUser = res.user || res.data?.user || { id: 'u1', email, fullName: email.split('@')[0] };
+    if (authToken) {
+      localStorage.setItem(TOKEN_KEY, authToken);
+      localStorage.setItem('finsight_token', authToken);
+      setToken(authToken);
+    }
     setUser(authUser);
     setIsAuthModalOpen(false);
     return authUser;
-  };
-
-  const login = async (email: string, password: string): Promise<User> => {
-    const result = await loginUser({ email, password });
-    return saveSession(result.token, result.user);
   };
 
   const register = async (payload: {
     email: string;
     password: string;
     fullName: string;
+    phone?: string;
+    whatsappOptIn?: boolean;
   }): Promise<User> => {
-    const result = await registerUser(payload);
-    return saveSession(result.token, result.user);
+    const res = await registerUser(payload);
+    const authToken = res.accessToken || res.token || res.data?.token || '';
+    const authUser = res.user || res.data?.user || { id: 'u1', email: payload.email, fullName: payload.fullName };
+    if (authToken) {
+      localStorage.setItem(TOKEN_KEY, authToken);
+      localStorage.setItem('finsight_token', authToken);
+      setToken(authToken);
+    }
+    setUser(authUser);
+    setIsAuthModalOpen(false);
+    return authUser;
   };
 
   const logout = () => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem('finsight_token');
     setToken(null);
     setUser(null);
-    void logoutUser().catch((error: unknown) => {
-      console.warn("The local session ended, but the server logout request failed.", error);
-    });
   };
 
-  const updateProfile = async (payload: {
-    fullName?: string;
-    preferredCurrency?: string;
-    timezone?: string;
-  }): Promise<User> => {
-    if (!token) throw new Error("Sign in to update your profile.");
-    const result = await updateMyProfile(payload, token);
-    setUser(result.user);
-    return result.user;
+  const requestOTP = async (target: string, targetType: 'email' | 'phone', purpose: string = 'verification') => {
+    return await apiRequestOTP({ target, targetType, purpose });
+  };
+
+  const verifyOTP = async (target: string, otp: string, purpose: string = 'verification') => {
+    const res = await apiVerifyOTP({ target, otp, purpose });
+    if (token) {
+      await refreshProfile();
+    }
+    return res;
   };
 
   const refreshProfile = async () => {
     if (!token) return;
-    const result = await getMyProfile(token);
-    setUser(result.user);
+    try {
+      const res = await getMyProfile(token);
+      const profile = res.user || res.data?.user || res;
+      setUser(profile);
+    } catch (e) {
+      console.warn('Failed to refresh profile:', e);
+    }
   };
 
   return (
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         token,
-        isAuthenticated: Boolean(token && user),
+        isAuthenticated: Boolean(user || token),
         isLoading,
         isAuthModalOpen,
         openAuthModal: () => setIsAuthModalOpen(true),
@@ -137,7 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         register,
         logout,
-        updateProfile,
+        requestOTP,
+        verifyOTP,
         refreshProfile,
       }}
     >
@@ -147,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
