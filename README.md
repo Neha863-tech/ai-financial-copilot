@@ -313,6 +313,12 @@ ai-financial-copilot/
 
 Built by a five-member team for the PayPal AI/ML Hackathon.
 
+## Deployment & Team Guides
+
+- **Frontend on Vercel**: See [VERCEL_DEPLOYMENT_GUIDE.md](VERCEL_DEPLOYMENT_GUIDE.md) for 1-click Vercel frontend deployment with global edge CDN and automatic client-side SPA routing.
+- **Full-Stack on Render**: See [RENDER_DEPLOYMENT_GUIDE.md](RENDER_DEPLOYMENT_GUIDE.md) for 1-click Blueprint deployment of PostgreSQL, Node.js Backend, and FastAPI AI Service via `render.yaml`.
+- **Local Team Collaboration**: See [TEAM_COLLABORATION_GUIDE.md](TEAM_COLLABORATION_GUIDE.md) for 1-command startup (`npm start`), test suites, and troubleshooting tips.
+
 ## Useful documentation
 
 - [PayPal Developer Documentation](https://developer.paypal.com/)

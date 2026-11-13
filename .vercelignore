@@ -1,0 +1,8 @@
+# Vercel deployment ignore rules
+backend/
+ai-integration/
+.git
+.github
+*.log
+.env*
+!frontend/.env.example

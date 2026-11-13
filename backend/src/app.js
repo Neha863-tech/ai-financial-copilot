@@ -17,7 +17,7 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: [env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:3000'],
+    origin: [env.FRONTEND_URL, 'http://localhost:5173', 'http://localhost:3000', /\.vercel\.app$/],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
