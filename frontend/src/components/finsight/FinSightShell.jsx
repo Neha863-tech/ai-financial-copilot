@@ -26,7 +26,15 @@ export const FinSightShell = () => {
     const { user, isAuthenticated, openAuthModal, logout } = useAuth();
     const [currentPage, setCurrentPage] = useState("Overview");
     const [collapsed, setCollapsed] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(() => {
+        try {
+            const saved = localStorage.getItem("finsight_theme");
+            if (saved !== null) return saved === "dark";
+            return false;
+        } catch {
+            return false;
+        }
+    });
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [paypalModalOpen, setPaypalModalOpen] = useState(false);
     const [pulse, setPulse] = useState({
@@ -65,9 +73,11 @@ export const FinSightShell = () => {
     useEffect(() => {
         if (darkMode) {
             document.documentElement.classList.add("dark");
+            try { localStorage.setItem("finsight_theme", "dark"); } catch {}
         }
         else {
             document.documentElement.classList.remove("dark");
+            try { localStorage.setItem("finsight_theme", "light"); } catch {}
         }
     }, [darkMode]);
     // Complete 16-section navigation per Section 10 of prompt
@@ -180,6 +190,16 @@ export const FinSightShell = () => {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Quick Theme Toggle Pill */}
+            <button
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-lg border border-slate-200 dark:border-[#21352f] hover:bg-slate-50 dark:hover:bg-[#172c26] text-slate-600 dark:text-slate-300 transition-all flex items-center justify-center cursor-pointer"
+              title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              aria-label="Toggle theme"
+            >
+              {darkMode ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-600" />}
+            </button>
+
             {/* Quick Notifications Pill */}
             <button onClick={() => setCurrentPage("Notifications")} className="p-2 rounded-lg border border-slate-200 dark:border-[#21352f] hover:bg-slate-50 dark:hover:bg-[#172c26] text-slate-600 dark:text-slate-300 relative transition-all" title="Notifications">
               <Bell size={16}/>
