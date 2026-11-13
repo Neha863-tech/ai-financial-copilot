@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     AI_SERVICE_API_KEY: str = "finsight_internal_ai_secret_key_2026"
 
     # Microservice configuration
+    PORT: int = 8001
     AI_SERVICE_PORT: int = 8001
     AI_SERVICE_ENV: str = "development"
     LOG_LEVEL: str = "INFO"

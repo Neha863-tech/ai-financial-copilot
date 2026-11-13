@@ -1,5 +1,6 @@
 import { FinancialAgentEngine, DEFAULT_FINANCIAL_STATE } from "./financialAgentEngine";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1";
+const rawBase = (import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/+$/, "");
+const API_BASE = rawBase.endsWith("/api/v1") ? rawBase : `${rawBase}/api/v1`;
 export class FinSightAPI {
     static async request(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;
@@ -770,13 +771,32 @@ export class FinSightAPI {
     static async getAIExtractedDocument(file) {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await fetch("http://localhost:8001/api/v1/documents/upload", {
-            method: "POST",
-            body: formData,
-        });
-        if (!res.ok)
-            throw new Error("Failed to extract document");
-        return (await res.json()).data;
+        const token = localStorage.getItem("finsight_token") || localStorage.getItem("trustcart_auth_token") || localStorage.getItem("token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        try {
+            const res = await fetch(`${API_BASE}/ai/documents/upload`, {
+                method: "POST",
+                headers,
+                body: formData,
+            });
+            if (res.ok) {
+                const json = await res.json();
+                return json.data || json;
+            }
+        } catch {
+            // If backend proxy fails, try direct local AI microservice
+            const fallbackRes = await fetch("http://localhost:8001/api/v1/documents/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (fallbackRes.ok) {
+                const json = await fallbackRes.json();
+                return json.data || json;
+            }
+        }
+        throw new Error("Failed to extract document");
     }
     static async getAIAffordability(productName, price) {
         try {

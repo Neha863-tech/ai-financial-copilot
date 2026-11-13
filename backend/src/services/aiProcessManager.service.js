@@ -23,6 +23,11 @@ async function isAiServiceLive(url = 'http://localhost:8001/health') {
 }
 
 export async function startAiMicroservice() {
+  if (env.NODE_ENV === 'production' && env.AI_SERVICE_URL && !env.AI_SERVICE_URL.includes('localhost')) {
+    logger.info(`[AI-PROCESS] Production mode: connecting to remote AI service at ${env.AI_SERVICE_URL}`);
+    return;
+  }
+
   const isAlreadyRunning = await isAiServiceLive();
   if (isAlreadyRunning) {
     logger.info('[AI-PROCESS] FastAPI microservice is already active on port 8001');

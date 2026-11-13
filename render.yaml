@@ -1,0 +1,106 @@
+# Render Blueprint Specification for FinSight AI
+# Full-Stack Deployment: PostgreSQL, Node.js Core Backend, Python FastAPI AI Microservice, and React Frontend
+
+databases:
+  - name: finsight-db
+    databaseName: ai_financial_copilot
+    user: finsight_user
+    plan: free
+    region: oregon
+
+services:
+  # 1. Main Core Backend (Node.js + Express + Prisma)
+  - type: web
+    name: finsight-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finsight-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: AI_SERVICE_API_KEY
+        generateValue: true
+      - key: AI_SERVICE_URL
+        fromService:
+          type: web
+          name: finsight-ai-service
+          property: url
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: finsight-frontend
+          property: url
+      - key: AI_PROVIDER
+        value: gemini
+      - key: AI_MODEL
+        value: gemini-2.0-flash
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CURRENCY
+        value: USD
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+
+  # 2. Dedicated Python FastAPI AI Microservice
+  - type: web
+    name: finsight-ai-service
+    runtime: python
+    rootDir: ai-integration
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: AI_SERVICE_ENV
+        value: production
+      - key: NODE_BACKEND_URL
+        fromService:
+          type: web
+          name: finsight-backend
+          property: url
+      - key: AI_SERVICE_API_KEY
+        fromService:
+          type: web
+          name: finsight-backend
+          envVarKey: AI_SERVICE_API_KEY
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: GROQ_FALLBACK_MODEL
+        value: llama-3.1-8b-instant
+      - key: GROQ_API_KEY
+        sync: false
+
+  # 3. React Vite Frontend (Static Site)
+  - type: web
+    name: finsight-frontend
+    runtime: static
+    rootDir: frontend
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: finsight-backend
+          property: url

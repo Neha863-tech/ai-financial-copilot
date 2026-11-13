@@ -1,7 +1,7 @@
 import { DEMO_PRODUCTS } from '../data/demoProducts';
 import { INITIAL_MULTI_AGENT_STATE } from '../data/demoAgents';
 import { INITIAL_DEMO_ORDERS } from '../data/demoOrders';
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '');
 export const IS_MOCK_FALLBACK_ENABLED = import.meta.env.VITE_ENABLE_MOCK_FALLBACK !== 'false';
 // Helper to determine if backend is reachable
 let isBackendAlive = null;

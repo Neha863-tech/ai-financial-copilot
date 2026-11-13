@@ -6,6 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
+    "build": "prisma generate && prisma db push && node prisma/seed.js",
     "start": "node src/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
