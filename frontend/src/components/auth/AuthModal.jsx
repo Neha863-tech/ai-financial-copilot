@@ -100,7 +100,7 @@ export const AuthModal = () => {
               <ShieldCheck className="w-5 h-5"/>
             </span>
             <div>
-              <h3 className="text-lg font-bold">TrustCart AI Security</h3>
+              <h3 className="text-lg font-bold">FinSight AI Security</h3>
               <p className="text-xs text-slate-300">
                 {isAuthenticated
             ? 'Manage your account and verification status'

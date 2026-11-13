@@ -13,7 +13,7 @@ export const CartProvider = ({ children }) => {
     ]);
     const [userApprovalConfirmed, setUserApprovalConfirmed] = useState(() => {
         try {
-            return sessionStorage.getItem('trustcart_user_approval') === 'true';
+            return sessionStorage.getItem('finsight_user_approval') === 'true';
         }
         catch {
             return false;
@@ -21,7 +21,7 @@ export const CartProvider = ({ children }) => {
     });
     const [acknowledgedWarnings, setAcknowledgedWarnings] = useState(() => {
         try {
-            const stored = sessionStorage.getItem('trustcart_ack_warnings');
+            const stored = sessionStorage.getItem('finsight_ack_warnings');
             return stored ? JSON.parse(stored) : [];
         }
         catch {
@@ -30,13 +30,13 @@ export const CartProvider = ({ children }) => {
     });
     useEffect(() => {
         try {
-            sessionStorage.setItem('trustcart_user_approval', userApprovalConfirmed ? 'true' : 'false');
+            sessionStorage.setItem('finsight_user_approval', userApprovalConfirmed ? 'true' : 'false');
         }
         catch { }
     }, [userApprovalConfirmed]);
     useEffect(() => {
         try {
-            sessionStorage.setItem('trustcart_ack_warnings', JSON.stringify(acknowledgedWarnings));
+            sessionStorage.setItem('finsight_ack_warnings', JSON.stringify(acknowledgedWarnings));
         }
         catch { }
     }, [acknowledgedWarnings]);
@@ -46,8 +46,8 @@ export const CartProvider = ({ children }) => {
         setUserApprovalConfirmed(false);
         setAcknowledgedWarnings([]);
         try {
-            sessionStorage.removeItem('trustcart_user_approval');
-            sessionStorage.removeItem('trustcart_ack_warnings');
+            sessionStorage.removeItem('finsight_user_approval');
+            sessionStorage.removeItem('finsight_ack_warnings');
         }
         catch { }
     };

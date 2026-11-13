@@ -7,12 +7,12 @@ export const DemoBanner = () => {
         return null;
     return (<div className="bg-gradient-to-r from-navy-900 via-navy-850 to-indigo-950 text-white text-xs px-4 py-2 border-b border-violet-900/40 shadow-xs flex items-center justify-between transition-all">
       <div className="flex items-center gap-2.5 flex-wrap">
-        <span className="flex items-center gap-1.5 font-semibold text-violet-300 bg-violet-950/80 border border-violet-700/60 px-2 py-0.5 rounded-full text-[11px]">
-          <ShieldCheck className="w-3.5 h-3.5 text-violet-400"/>
-          HACKATHON EVIDENCE DEMO
+        <span className="flex items-center gap-1.5 font-semibold text-emerald-300 bg-emerald-950/80 border border-emerald-700/60 px-2 py-0.5 rounded-full text-[11px]">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400"/>
+          PAYPAL AI HACKATHON DEMO
         </span>
         <span className="text-slate-300">
-          Showing verified synthetic benchmarks & audit trails. No real transactions or payment credentials stored.
+          FinSight AI Copilot: Personal financial intelligence & PayPal sandbox checkout verification.
         </span>
         <span className="hidden md:inline-flex items-center gap-1 text-slate-400 font-mono text-[11px]">
           Target Backend: <code className="text-electric-400 bg-navy-950 px-1.5 py-0.5 rounded border border-navy-700">{API_BASE_URL}</code>

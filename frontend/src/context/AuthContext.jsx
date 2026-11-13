@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loginUser, registerUser, requestOTP as apiRequestOTP, verifyOTP as apiVerifyOTP, getMyProfile, } from '../services/api';
 const AuthContext = createContext(undefined);
-const TOKEN_KEY = 'trustcart_auth_token';
+const TOKEN_KEY = 'finsight_auth_token';
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) || localStorage.getItem('finsight_token'));
     const [user, setUser] = useState(null);

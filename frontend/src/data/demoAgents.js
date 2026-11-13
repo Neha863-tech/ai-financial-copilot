@@ -123,7 +123,7 @@ export const INITIAL_MULTI_AGENT_STATE = {
                     agentId: 'verification',
                     level: 'error',
                     message: 'Audit alert: QuickDeal Hub lacks manufacturer warranty backing; marked as UNVERIFIED.',
-                    sourceUrl: 'https://trustcart.internal/audit/grey-009'
+                    sourceUrl: 'https://paypal.com/demo/audit/grey-009'
                 },
                 {
                     id: 'log-ver-3',

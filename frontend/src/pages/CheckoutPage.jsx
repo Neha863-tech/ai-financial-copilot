@@ -223,7 +223,7 @@ export const CheckoutPage = () => {
                 key: rzpOrderData.keyId,
                 amount: rzpOrderData.amountPaise,
                 currency: rzpOrderData.currency,
-                name: 'TrustCart AI',
+                name: 'FinSight AI',
                 description: `Verified Purchase: ${selectedProduct.title.slice(0, 40)}`,
                 image: selectedProduct.imageUrl,
                 order_id: rzpOrderData.razorpayOrderId,
@@ -237,7 +237,7 @@ export const CheckoutPage = () => {
                     whatsapp_opt_in: whatsappOptIn ? 'true' : 'false',
                 },
                 theme: {
-                    color: '#6d28d9', // TrustCart violet brand accent
+                    color: '#10b981', // FinSight emerald brand accent
                 },
                 handler: async (response) => {
                     setIsProcessing(true);
@@ -424,7 +424,7 @@ export const CheckoutPage = () => {
                     explicitUserApproval: true,
                     approvalTimestamp: new Date().toISOString(),
                     verifiedSellerConfirmed: selectedProduct.seller.verifiedSeller,
-                    notes: 'Demo payment — no money charged. Authenticated demo checkout pass for hackathon evaluation.',
+                    notes: 'Demo payment — no money charged. Authenticated sandbox checkout pass for PayPal AI Hackathon evaluation.',
                 },
             };
             addOrder(completedOrder);
@@ -447,10 +447,10 @@ export const CheckoutPage = () => {
             </span>
             <div>
               <h2 className="text-xl font-bold tracking-tight">
-                TrustCart AI Real Payment Gateway
+                FinSight AI Payment Gateway
               </h2>
               <p className="text-xs text-slate-300">
-                Authoritative Razorpay INR processing with automated SMS & Meta WhatsApp Cloud API notifications.
+                Authoritative PayPal Sandbox & Card processing with verified transaction intelligence.
               </p>
             </div>
           </div>
@@ -681,7 +681,7 @@ export const CheckoutPage = () => {
                             Explicit Pre-Checkout Purchase Approval
                           </span>
                           <span className="text-[11px] text-slate-300">
-                            I have inspected the verified specifications, tax breakdown, and seller credentials. I explicitly authorize TrustCart AI to initiate payment for this order.
+                            I have inspected the verified specifications, tax breakdown, and seller credentials. I explicitly authorize PayPal Checkout to initiate payment for this order.
                           </span>
                         </div>
                       </label>

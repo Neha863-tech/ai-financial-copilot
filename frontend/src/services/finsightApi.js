@@ -5,7 +5,7 @@ export class FinSightAPI {
     static async request(endpoint, options = {}) {
         const url = `${API_BASE}${endpoint}`;
         const token = localStorage.getItem("finsight_token") ||
-            localStorage.getItem("trustcart_auth_token") ||
+            localStorage.getItem("finsight_auth_token") ||
             localStorage.getItem("token");
         const headers = {
             "Content-Type": "application/json",
@@ -704,7 +704,7 @@ export class FinSightAPI {
     static async exportUserData() {
         const url = `${API_BASE}/profile/export-data`;
         const token = localStorage.getItem("finsight_token") ||
-            localStorage.getItem("trustcart_auth_token") ||
+            localStorage.getItem("finsight_auth_token") ||
             localStorage.getItem("token");
         const res = await fetch(url, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -724,7 +724,7 @@ export class FinSightAPI {
     static async exportActivityCsv() {
         const url = `${API_BASE}/activity/export`;
         const token = localStorage.getItem("finsight_token") ||
-            localStorage.getItem("trustcart_auth_token") ||
+            localStorage.getItem("finsight_auth_token") ||
             localStorage.getItem("token");
         const res = await fetch(url, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -771,7 +771,7 @@ export class FinSightAPI {
     static async getAIExtractedDocument(file) {
         const formData = new FormData();
         formData.append("file", file);
-        const token = localStorage.getItem("finsight_token") || localStorage.getItem("trustcart_auth_token") || localStorage.getItem("token");
+        const token = localStorage.getItem("finsight_token") || localStorage.getItem("finsight_auth_token") || localStorage.getItem("token");
         const headers = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 

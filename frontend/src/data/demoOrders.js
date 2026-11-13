@@ -16,7 +16,7 @@ export const INITIAL_DEMO_ORDERS = [
         date: '2026-10-23T14:22:10Z',
         paymentGateway: 'paypal_sandbox',
         paypalOrderId: 'SANDBOX-CAPTURE-88192X',
-        paypalPayerEmail: 'buyer-sandbox@trustcart.ai',
+        paypalPayerEmail: 'buyer-sandbox@finsight.ai',
         isDemo: true,
         verificationSnapshot: {
             score: 94,
@@ -47,7 +47,7 @@ export const INITIAL_DEMO_ORDERS = [
         date: '2026-10-24T11:05:32Z',
         paymentGateway: 'paypal_sandbox',
         paypalOrderId: 'SANDBOX-PENDING-44102Y',
-        paypalPayerEmail: 'buyer-test2@trustcart.ai',
+        paypalPayerEmail: 'buyer-test2@finsight.ai',
         isDemo: true,
         verificationSnapshot: {
             score: 88,

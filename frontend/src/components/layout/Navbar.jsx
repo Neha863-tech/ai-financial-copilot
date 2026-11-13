@@ -41,7 +41,7 @@ export const Navbar = () => {
             case '/orders':
                 return 'Verified Order Audit History';
             default:
-                return 'TrustCart AI Shopping';
+                return 'FinSight AI Copilot';
         }
     };
     return (<header className="h-16 bg-navy-950/80 backdrop-blur-md border-b border-navy-800/80 sticky top-0 z-20 px-6 flex items-center justify-between shadow-subtle text-slate-100">

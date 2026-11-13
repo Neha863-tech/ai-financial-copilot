@@ -64,7 +64,7 @@ export const PurchaseApprovalPage = () => {
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            TrustCart AI requires explicit buyer approval of verified facts and unverified claims before order initialization.
+            FinSight AI requires explicit buyer approval of verified facts and unverified claims before order initialization.
           </p>
         </div>
 
@@ -229,7 +229,7 @@ export const PurchaseApprovalPage = () => {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              In accordance with TrustCart AI evidence principles, automated agents do not initiate payment transactions without explicit, verified user authorization.
+              In accordance with FinSight AI financial safety principles, automated agents do not initiate payment transactions without explicit, verified user authorization.
             </p>
 
             <label className="flex items-start gap-3 p-3.5 rounded-2xl bg-navy-950/80 border border-violet-500/40 cursor-pointer shadow-subtle">

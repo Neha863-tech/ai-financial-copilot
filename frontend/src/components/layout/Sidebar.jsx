@@ -75,23 +75,23 @@ export const Sidebar = () => {
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-lg tracking-tight text-white font-sans">
-                TrustCart
+                FinSight
               </span>
-              <span className="bg-gradient-to-r from-violet-400 to-electric-400 bg-clip-text text-transparent font-extrabold text-sm">
+              <span className="bg-gradient-to-r from-emerald-400 to-electric-400 bg-clip-text text-transparent font-extrabold text-sm">
                 AI
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium tracking-wide">
-              Evidence-First Shopping
+              Financial Copilot &bull; PayPal AI
             </p>
           </div>
         </NavLink>
 
         {/* Hackathon Demo Tag */}
         <div className="mt-3.5 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-navy-850 border border-navy-700/60 text-[11px]">
-          <span className="flex items-center gap-1.5 text-violet-300 font-medium">
-            <Zap className="w-3.5 h-3.5 text-violet-400 animate-pulse"/>
-            Hackathon Demo
+          <span className="flex items-center gap-1.5 text-emerald-300 font-medium">
+            <Zap className="w-3.5 h-3.5 text-emerald-400 animate-pulse"/>
+            PayPal AI Hackathon
           </span>
           <span className="text-[10px] bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded font-mono font-semibold">
             v1.0
