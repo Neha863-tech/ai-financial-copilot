@@ -1,7 +1,7 @@
 import { authService } from '../services/auth.service.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
-import { setTokenCookie, clearTokenCookie } from '../utils/generateToken.js';
+import { setTokenCookie, clearTokenCookie, generateToken } from '../utils/generateToken.js';
 import { getClientIp, parseUserAgent, getApproximateLocation } from '../utils/deviceParser.js';
 import { env } from '../config/env.js';
 
@@ -22,7 +22,9 @@ export const authController = {
   register: asyncHandler(async (req, res) => {
     const meta = extractReqMeta(req);
     const user = await authService.register(req.body, meta);
-    res.status(201).json(ApiResponse.created('User registered successfully', { user }));
+    const token = generateToken(user.id);
+    setTokenCookie(res, token);
+    res.status(201).json(ApiResponse.created('User registered successfully', { user, token }));
   }),
 
   login: asyncHandler(async (req, res) => {
