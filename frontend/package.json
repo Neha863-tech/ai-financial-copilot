@@ -10,8 +10,6 @@
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^10.6.1",
-    "@react-three/drei": "^9.114.4",
-    "@react-three/fiber": "^8.17.10",
     "ag-grid-community": "^36.3.0",
     "ag-grid-react": "^36.3.0",
     "canvas-confetti": "^1.9.3",
@@ -23,20 +21,17 @@
     "react-router-dom": "^6.27.0",
     "recharts": "^3.10.1",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^2.5.4",
-    "three": "^0.169.0"
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.16.11",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
-    "@types/three": "^0.169.0",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
-    "typescript": "^5.6.3",
     "vite": "^5.4.10"
   }
 }
